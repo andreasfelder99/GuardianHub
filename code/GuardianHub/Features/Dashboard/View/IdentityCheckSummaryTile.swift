@@ -22,11 +22,22 @@ struct IdentityCheckSummaryTile: View {
             }
         }
         .padding(16)
-        .background(.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        // subtle border
+        .background(
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.background)
+
+                if let accentColor {
+                    Rectangle()
+                        .fill(accentColor)
+                        .frame(width: 4)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+            }
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(.quaternary, lineWidth: 1)
+                .strokeBorder(borderStyle, lineWidth: 1)
         )
     }
 
@@ -99,5 +110,17 @@ struct IdentityCheckSummaryTile: View {
                 // shrink text if it's too long
                 .minimumScaleFactor(0.85)
         }
+    }
+
+    private var accentColor: Color? {
+        guard totalCount > 0 else { return nil }
+        return atRiskCount > 0 ? .orange : nil
+    }
+
+    private var borderStyle: AnyShapeStyle {
+        if atRiskCount > 0 {
+            return AnyShapeStyle(Color.orange.opacity(0.35))
+        }
+        return AnyShapeStyle(.quaternary)
     }
 }
