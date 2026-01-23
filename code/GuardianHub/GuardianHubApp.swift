@@ -26,7 +26,7 @@ struct GuardianHubApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootNavigationView()
         }
         .modelContainer(sharedModelContainer)
     }
