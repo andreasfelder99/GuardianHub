@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct SidebarSplitView: View {
-    @State private var selection: AppSection? = .dashboard
+    @Environment(AppNavigationModel.self) private var navModel
 
     var body: some View {
         NavigationSplitView {
             // sidebar list
-            List(selection: $selection) {
+             List(selection: bindingSelection) {
                 ForEach(AppSection.allCases) { section in
                     NavigationLink(value: section) {
                         Label(section.title, systemImage: section.systemImage)
@@ -18,12 +18,21 @@ struct SidebarSplitView: View {
         } detail: {
             // detail view on the right
             NavigationStack {
-                SectionDetailRouter(selection: selection ?? .dashboard)
+                SectionDetailRouter(selection: navModel.selectedSection)
             }
             .navigationDestination(for: AppSection.self) { section in
                 SectionDetailRouter(selection: section)
             }
         }
+    }
+
+    private var bindingSelection: Binding<AppSection?> {
+        Binding<AppSection?>(
+            get: { navModel.selectedSection },
+            set: { newValue in
+                if let newValue { navModel.selectedSection = newValue }
+            }
+        )
     }
 }
 
