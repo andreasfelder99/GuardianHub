@@ -2,7 +2,10 @@ import SwiftUI
 import SwiftData
 
 struct IdentityCheckView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \BreachCheck.createdAt, order: .reverse) private var checks: [BreachCheck]
+
+    @State private var isPresentingAddSheet = false
 
     var body: some View {
         List {
@@ -21,5 +24,20 @@ struct IdentityCheckView: View {
             }
         }
         .navigationTitle("Identity Check")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    isPresentingAddSheet = true
+                } label: {
+                    Label("Add", systemImage: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $isPresentingAddSheet) {
+            AddBreachCheckSheet { email in
+                let check = BreachCheck(emailAddress: email)
+                modelContext.insert(check)
+            }
+        }
     }
 }
