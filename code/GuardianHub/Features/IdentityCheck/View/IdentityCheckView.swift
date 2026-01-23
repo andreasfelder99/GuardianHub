@@ -8,23 +8,26 @@ struct IdentityCheckView: View {
     @State private var isPresentingAddSheet = false
 
     var body: some View {
-        List {
+        Group {
             if checks.isEmpty {
                 ContentUnavailableView(
                     "No Breach Checks",
                     systemImage: "person.text.rectangle",
                     description: Text("Add an email address to start tracking breach history.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                Section {
-                    ForEach(checks) { check in
-                        NavigationLink {
-                            BreachCheckDetailView(check: check)
-                        } label: {
-                            BreachCheckRow(check: check)
+                List {
+                    Section {
+                        ForEach(checks) { check in
+                            NavigationLink {
+                                BreachCheckDetailView(check: check)
+                            } label: {
+                                BreachCheckRow(check: check)
+                            }
                         }
+                        .onDelete(perform: delete)
                     }
-                    .onDelete(perform: delete)
                 }
             }
         }
@@ -45,6 +48,7 @@ struct IdentityCheckView: View {
             }
         }
     }
+
 
     private func delete(_ indexSet: IndexSet) {
         for index in indexSet {
