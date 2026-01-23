@@ -5,6 +5,7 @@ struct SidebarSplitView: View {
 
     var body: some View {
         NavigationSplitView {
+            // sidebar list
             List(selection: $selection) {
                 ForEach(AppSection.allCases) { section in
                     NavigationLink(value: section) {
@@ -15,6 +16,7 @@ struct SidebarSplitView: View {
             }
             .navigationTitle("GuardianHub")
         } detail: {
+            // detail view on the right
             NavigationStack {
                 SectionDetailRouter(selection: selection ?? .dashboard)
             }
@@ -25,6 +27,7 @@ struct SidebarSplitView: View {
     }
 }
 
+// simple router to show the right view based on selection
 private struct SectionDetailRouter: View {
     let selection: AppSection
 

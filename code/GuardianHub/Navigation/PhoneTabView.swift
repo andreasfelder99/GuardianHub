@@ -1,6 +1,7 @@
 import SwiftUI
 
 #if os(iOS)
+// tab bar for iPhone (compact size class)
 struct PhoneTabView: View {
     var body: some View {
         TabView {

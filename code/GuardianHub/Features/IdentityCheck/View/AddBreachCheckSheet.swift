@@ -3,6 +3,7 @@ import SwiftUI
 struct AddBreachCheckSheet: View {
     @Environment(\.dismiss) private var dismiss
 
+    // callback when user adds a valid email
     let onAdd: (String) -> Void
 
     @State private var emailAddress: String = ""
@@ -17,12 +18,14 @@ struct AddBreachCheckSheet: View {
                         Button("Cancel") { dismiss() }
                     }
                     ToolbarItem(placement: .confirmationAction) {
+                        // disable add button if email is invalid
                         Button("Add") { submit() }
                             .disabled(!EmailValidator.isPlausibleEmail(emailAddress.trimmingCharacters(in: .whitespacesAndNewlines)))
                     }
                 }
         }
         #if os(macOS)
+        // make it a bit bigger on mac
         .frame(minWidth: 420, minHeight: 220)
         #endif
     }
@@ -30,6 +33,7 @@ struct AddBreachCheckSheet: View {
     @ViewBuilder
     private var content: some View {
         #if os(macOS)
+        // simpler layout for mac
         VStack(alignment: .leading, spacing: 12) {
             Text("Email Address")
                 .font(.headline)
@@ -47,6 +51,7 @@ struct AddBreachCheckSheet: View {
         }
         .padding(20)
         #else
+        // use form on iOS for better keyboard handling
         Form {
             Section("Email Address") {
                 TextField("name@example.com", text: $emailAddress)

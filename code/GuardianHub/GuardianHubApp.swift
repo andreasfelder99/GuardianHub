@@ -10,6 +10,7 @@ import SwiftData
 
 @main
 struct GuardianHubApp: App {
+    // setup SwiftData container for persistence
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             BreachCheck.self,
@@ -20,6 +21,7 @@ struct GuardianHubApp: App {
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
+            // TODO: handle this better in production, maybe show error to user
             fatalError("[SwiftData]Could not create ModelContainer: \(error)")
         }
     }()

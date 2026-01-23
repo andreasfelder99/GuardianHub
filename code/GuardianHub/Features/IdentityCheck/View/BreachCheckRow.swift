@@ -5,6 +5,7 @@ struct BreachCheckRow: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
+            // show warning icon if breaches found, otherwise checkmark
             Image(systemName: check.breachCount > 0 ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(check.breachCount > 0 ? .orange : .secondary)
@@ -20,6 +21,7 @@ struct BreachCheckRow: View {
 
             Spacer()
 
+            // last checked date on the right
             Text(trailing)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

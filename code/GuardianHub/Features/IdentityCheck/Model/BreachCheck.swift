@@ -3,18 +3,18 @@ import SwiftData
 
 @Model
 final class BreachCheck {
-    //Input
+    // the email we're tracking
     var emailAddress: String
 
-    //Audit metadata
+    // when was this check created / last time we checked HIBP
     var createdAt: Date
     var lastCheckedAt: Date?
 
-    //Dashboard fields
+    // quick summary for dashboard - don't need to query all events every time
     var breachCount: Int
     var lastResultSummary: String?
 
-    // One check -> many breach events
+    // one check can have many breach events (cascade delete so if we delete the check, events go too)
     @Relationship(deleteRule: .cascade, inverse: \BreachEvent.check)
     var events: [BreachEvent]
 
@@ -31,7 +31,7 @@ final class BreachCheck {
 
 @Model
 final class BreachEvent {
-    // Inverse relationship (assigned when appended to BreachCheck.events)
+    // back reference to the check (SwiftData handles this when we append to events array)
     var check: BreachCheck?
 
     // Minimal fields now; we can extend with HIBP fields later (Domain, DataClasses, etc.)

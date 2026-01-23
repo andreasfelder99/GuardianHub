@@ -5,6 +5,7 @@ struct BreachCheckDetailView: View {
 
     var body: some View {
         List {
+            // status indicator at the top
             Section {
                 HStack {
                     Label(check.breachCount > 0 ? "Attention required" : "No issues identified", systemImage: "shield.lefthalf.filled")
@@ -22,6 +23,7 @@ struct BreachCheckDetailView: View {
 
             Section("History") {
                 if check.events.isEmpty {
+                    // empty state for breach events
                     ContentUnavailableView(
                         "No breach history stored",
                         systemImage: "tray",
@@ -29,6 +31,7 @@ struct BreachCheckDetailView: View {
                     )
                     .frame(maxWidth: .infinity, minHeight: 240)
                 } else {
+                    // list all breach events
                     ForEach(check.events) { event in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(event.breachName)

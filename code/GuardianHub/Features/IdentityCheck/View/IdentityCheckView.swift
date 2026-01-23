@@ -3,6 +3,7 @@ import SwiftData
 
 struct IdentityCheckView: View {
     @Environment(\.modelContext) private var modelContext
+    // sorted by newest first
     @Query(sort: \BreachCheck.createdAt, order: .reverse) private var checks: [BreachCheck]
 
     @State private var isPresentingAddSheet = false
@@ -10,6 +11,7 @@ struct IdentityCheckView: View {
     var body: some View {
         Group {
             if checks.isEmpty {
+                // empty state when no checks yet
                 ContentUnavailableView(
                     "No Breach Checks",
                     systemImage: "person.text.rectangle",
@@ -43,13 +45,14 @@ struct IdentityCheckView: View {
         }
         .sheet(isPresented: $isPresentingAddSheet) {
             AddBreachCheckSheet { email in
+                // create new check and save it
                 let check = BreachCheck(emailAddress: email)
                 modelContext.insert(check)
             }
         }
     }
 
-
+    // handle swipe to delete
     private func delete(_ indexSet: IndexSet) {
         for index in indexSet {
             modelContext.delete(checks[index])

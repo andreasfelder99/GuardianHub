@@ -11,6 +11,7 @@ struct RootNavigationView: View {
 }
 
 #if os(iOS)
+// switch between tab view (iPhone) and sidebar (iPad)
 private struct AdaptiveNavigationHost: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
