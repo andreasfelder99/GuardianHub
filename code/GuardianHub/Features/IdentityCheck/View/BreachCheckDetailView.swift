@@ -1,29 +1,53 @@
 import SwiftUI
+import SwiftData
 
 struct BreachCheckDetailView: View {
+    @Environment(\.modelContext) private var modelContext
+
     let check: BreachCheck
+
+    @State private var isRunning = false
+    @State private var errorMessage: String?
+
+    private let service: BreachCheckServicing = StubBreachCheckService()
 
     var body: some View {
         List {
-            // status indicator at the top
+            // Status section at the top
             Section {
                 HStack {
-                    Label(check.breachCount > 0 ? "Attention required" : "No issues identified", systemImage: "shield.lefthalf.filled")
+                    Label(
+                        check.breachCount > 0 ? "Attention required" : "No issues stored",
+                        systemImage: "shield.lefthalf.filled"
+                    )
                     Spacer()
                     Text(check.breachCount > 0 ? "Risk" : "OK")
                         .foregroundStyle(check.breachCount > 0 ? .orange : .secondary)
                 }
             }
+
+            if let errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                }
+            }
+
             Section("Summary") {
                 LabeledContent("Email", value: check.emailAddress)
                 LabeledContent("Breaches", value: "\(check.breachCount)")
-                LabeledContent("Created", value: check.createdAt.formatted(date: .abbreviated, time: .shortened))
-                LabeledContent("Last Checked", value: check.lastCheckedAt?.formatted(date: .abbreviated, time: .shortened) ?? "Never")
+                LabeledContent(
+                    "Created",
+                    value: check.createdAt.formatted(date: .abbreviated, time: .shortened)
+                )
+                LabeledContent(
+                    "Last Checked",
+                    value: check.lastCheckedAt?.formatted(date: .abbreviated, time: .shortened) ?? "Never"
+                )
             }
 
             Section("History") {
                 if check.events.isEmpty {
-                    // empty state for breach events
                     ContentUnavailableView(
                         "No breach history stored",
                         systemImage: "tray",
@@ -31,15 +55,17 @@ struct BreachCheckDetailView: View {
                     )
                     .frame(maxWidth: .infinity, minHeight: 240)
                 } else {
-                    // list all breach events
                     ForEach(check.events) { event in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(event.breachName)
                                 .font(.headline)
+
                             if let occurredAt = event.occurredAt {
-                                Text("Occurred: \(occurredAt.formatted(date: .abbreviated, time: .omitted))")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                Text(
+                                    "Occurred: \(occurredAt.formatted(date: .abbreviated, time: .omitted))"
+                                )
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -47,5 +73,39 @@ struct BreachCheckDetailView: View {
             }
         }
         .navigationTitle("Breach Check")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    runCheck()
+                } label: {
+                    if isRunning {
+                        ProgressView()
+                    } else {
+                        Label("Run Check", systemImage: "arrow.clockwise")
+                    }
+                }
+                .disabled(isRunning)
+            }
+        }
+    }
+
+    private func runCheck() {
+        errorMessage = nil
+        isRunning = true
+
+        Task {
+            do {
+                let result = try await service.check(emailAddress: check.emailAddress)
+                await MainActor.run {
+                    BreachCheckStore.apply(result, to: check)
+                    isRunning = false
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Check failed: \(error.localizedDescription)"
+                    isRunning = false
+                }
+            }
+        }
     }
 }
