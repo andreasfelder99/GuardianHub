@@ -17,7 +17,7 @@ enum EmailValidator {
         guard !local.isEmpty, !domain.isEmpty else { return false }
         guard !s.contains(" ") else { return false }
 
-        // domain needs at least one dot (e.g. example.com)
+        // Domain must contain at least one dot
         let domainParts = domain.split(separator: ".")
         guard domainParts.count >= 2 else { return false }
 

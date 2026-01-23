@@ -10,7 +10,6 @@ import SwiftData
 
 @main
 struct GuardianHubApp: App {
-    // setup SwiftData container for persistence
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             BreachCheck.self,
