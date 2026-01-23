@@ -5,13 +5,22 @@ struct SidebarSplitView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(AppSection.allCases, selection: $selection) { section in
-                Label(section.title, systemImage: section.systemImage)
+            List(selection: $selection) {
+                ForEach(AppSection.allCases) { section in
+                    NavigationLink(value: section) {
+                        Label(section.title, systemImage: section.systemImage)
+                    }
                     .tag(section as AppSection?)
+                }
             }
             .navigationTitle("GuardianHub")
         } detail: {
-            SectionDetailRouter(selection: selection ?? .dashboard)
+            NavigationStack {
+                SectionDetailRouter(selection: selection ?? .dashboard)
+            }
+            .navigationDestination(for: AppSection.self) { section in
+                SectionDetailRouter(selection: section)
+            }
         }
     }
 }
