@@ -18,8 +18,13 @@ struct IdentityCheckView: View {
             } else {
                 Section {
                     ForEach(checks) { check in
-                        BreachCheckRow(check: check)
+                        NavigationLink {
+                            BreachCheckDetailView(check: check)
+                        } label: {
+                            BreachCheckRow(check: check)
+                        }
                     }
+                    .onDelete(perform: delete)
                 }
             }
         }
@@ -38,6 +43,12 @@ struct IdentityCheckView: View {
                 let check = BreachCheck(emailAddress: email)
                 modelContext.insert(check)
             }
+        }
+    }
+
+    private func delete(_ indexSet: IndexSet) {
+        for index in indexSet {
+            modelContext.delete(checks[index])
         }
     }
 }
