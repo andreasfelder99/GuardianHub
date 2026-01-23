@@ -5,6 +5,14 @@ struct BreachCheckDetailView: View {
 
     var body: some View {
         List {
+            Section {
+                HStack {
+                    Label(check.breachCount > 0 ? "Attention required" : "No issues identified", systemImage: "shield.lefthalf.filled")
+                    Spacer()
+                    Text(check.breachCount > 0 ? "Risk" : "OK")
+                        .foregroundStyle(check.breachCount > 0 ? .orange : .secondary)
+                }
+            }
             Section("Summary") {
                 LabeledContent("Email", value: check.emailAddress)
                 LabeledContent("Breaches", value: "\(check.breachCount)")
@@ -19,6 +27,7 @@ struct BreachCheckDetailView: View {
                         systemImage: "tray",
                         description: Text("Once you run a check, breach events will appear here.")
                     )
+                    .frame(maxWidth: .infinity, minHeight: 240)
                 } else {
                     ForEach(check.events) { event in
                         VStack(alignment: .leading, spacing: 4) {
