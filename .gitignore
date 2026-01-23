@@ -1,0 +1,87 @@
+############################################
+# macOS
+############################################
+.DS_Store
+.AppleDouble
+.LSOverride
+
+############################################
+# Xcode
+############################################
+# Build products
+DerivedData/
+build/
+
+# User-specific Xcode files
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+
+# Workspace user data
+*.xcworkspace/xcuserdata/
+
+# Swift Package Manager
+.swiftpm/xcode/package.xcworkspace/
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+.build/
+
+############################################
+# Swift / Build Artifacts
+############################################
+*.swiftdoc
+*.swiftmodule
+*.swiftinterface
+
+############################################
+# Code Coverage
+############################################
+*.gcno
+*.gcda
+*.gcov
+
+############################################
+# Cursor / VS Code
+############################################
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+############################################
+# Sweetpad / Xcode Build Server
+############################################
+buildServer.json
+.xcode-build-server/
+
+############################################
+# Inject (Hot Reloading)
+############################################
+Injected/
+InjectionProject/
+
+############################################
+# Logs & Temporary Files
+############################################
+*.log
+*.tmp
+*.temp
+*.swp
+*.bak
+
+############################################
+# Fastlane (if added later)
+############################################
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+############################################
+# Environment / Secrets
+############################################
+.env
+.env.*
+*.xcconfig.local
