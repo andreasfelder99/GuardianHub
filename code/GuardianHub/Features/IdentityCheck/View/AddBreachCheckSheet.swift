@@ -10,35 +10,58 @@ struct AddBreachCheckSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Email Address") {
-                    TextField("name@example.com", text: $emailAddress)
-                    #if os(iOS)
-                        .textInputAutocapitalization(.never)
-                    #endif
-                        .autocorrectionDisabled()
-                        #if os(iOS)
-                        .keyboardType(.emailAddress)
-                        #endif
-
-                    if let validationMessage {
-                        Text(validationMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
+            content
+                .navigationTitle("New Breach Check")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Add") { submit() }
+                            .disabled(!EmailValidator.isPlausibleEmail(emailAddress.trimmingCharacters(in: .whitespacesAndNewlines)))
                     }
                 }
+        }
+        #if os(macOS)
+        .frame(minWidth: 420, minHeight: 220)
+        #endif
+    }
 
-                Section {
-                    Button("Add") { submit() }
-                }
+    @ViewBuilder
+    private var content: some View {
+        #if os(macOS)
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Email Address")
+                .font(.headline)
+
+            TextField("name@example.com", text: $emailAddress)
+                .autocorrectionDisabled()
+
+            if let validationMessage {
+                Text(validationMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
             }
-            .navigationTitle("New Breach Check")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+
+            Spacer(minLength: 0)
+        }
+        .padding(20)
+        #else
+        Form {
+            Section("Email Address") {
+                TextField("name@example.com", text: $emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.emailAddress)
+
+                if let validationMessage {
+                    Text(validationMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
                 }
             }
         }
+        #endif
     }
 
     private func submit() {
