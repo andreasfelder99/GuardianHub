@@ -2,74 +2,102 @@ import SwiftUI
 import SwiftData
 
 struct IdentityCheckSummaryTile: View {
-    // get all checks sorted by most recently checked
-    @Query(sort: \BreachCheck.lastCheckedAt, order: .reverse) private var checks: [BreachCheck]
+    // get all checks, newest first
+    @Query(sort: \BreachCheck.createdAt, order: .reverse) private var checks: [BreachCheck]
 
-    // callback when user taps to open identity check section
+    // callback when user wants to open identity check section
     let onOpen: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Label("Identity Check", systemImage: "person.text.rectangle")
-                    .font(.headline)
-
-                Spacer()
-
-                // button to navigate to identity check view
-                Button(action: onOpen) {
-                    Label("Open", systemImage: "arrow.right")
-                        .labelStyle(.titleAndIcon)
-                }
-                .buttonStyle(.bordered)
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            header
 
             Divider()
 
-            // show quick stats
-            HStack(spacing: 16) {
-                metric(title: "Tracked", value: "\(totalCount)", systemImage: "tray.full")
-                metric(title: "At Risk", value: "\(atRiskCount)", systemImage: "exclamationmark.triangle.fill")
-                metric(title: "Last Check", value: lastCheckedText, systemImage: "clock")
+            // grid layout for the 3 metrics
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
+                metric(title: "Tracked", value: "\(totalCount)")
+                metric(title: "At Risk", value: "\(atRiskCount)")
+                metric(title: "Last Check", value: lastCheckedText)
             }
         }
         .padding(16)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         // subtle border
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(.separator, lineWidth: 1)
+                .strokeBorder(.quaternary, lineWidth: 1)
         )
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Identity Check", systemImage: "person.text.rectangle")
+                    .font(.headline)
+
+                // show status message based on current state
+                Text(statusText)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            // button to navigate to full identity check view
+            Button(action: onOpen) {
+                Label("Open", systemImage: "arrow.right")
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    // grid columns for the 3 metrics. Flexible so they adapt to screen size
+    private var columns: [GridItem] {
+        [
+            GridItem(.flexible(minimum: 80), alignment: .leading),
+            GridItem(.flexible(minimum: 80), alignment: .leading),
+            GridItem(.flexible(minimum: 90), alignment: .leading)
+        ]
     }
 
     private var totalCount: Int {
         checks.count
     }
 
-    // count how many have breaches found
+    // count how many checks have breaches
     private var atRiskCount: Int {
         checks.filter { $0.breachCount > 0 }.count
     }
 
-    // get the most recent check date across all checks
-    private var lastCheckedText: String {
-        guard let date = checks.compactMap(\.lastCheckedAt).sorted(by: >).first else {
-            return "Never"
-        }
-        return date.formatted(date: .abbreviated, time: .omitted)
+    // status message that changes based on state
+    private var statusText: String {
+        if totalCount == 0 { return "No emails tracked yet" }
+        if atRiskCount > 0 { return "\(atRiskCount) item(s) need attention" }
+        return "No risks recorded"
     }
 
-    // helper to build a metric display (title + value + icon)
-    private func metric(title: String, value: String, systemImage: String) -> some View {
+    // get the most recent check date across all checks
+    private var lastCheckedText: String {
+        guard let date = checks.compactMap(\.lastCheckedAt).max() else {
+            return "Never"
+        }
+        // compact format so it doesn't wrap on small screens
+        return date.formatted(.dateTime.month(.abbreviated).day().year())
+    }
+
+    // helper to build a metric card (title + value)
+    private func metric(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label(title, systemImage: systemImage)
-                .font(.subheadline)
+            Text(title)
+                .font(.caption)
                 .foregroundStyle(.secondary)
 
             Text(value)
                 .font(.title3.weight(.semibold))
+                .lineLimit(1)
+                // shrink text if it's too long
+                .minimumScaleFactor(0.85)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

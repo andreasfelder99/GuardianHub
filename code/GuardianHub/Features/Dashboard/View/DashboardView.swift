@@ -16,6 +16,7 @@ struct DashboardView: View {
             }
             .padding()
         }
+        .scrollIndicators(.hidden)
         .navigationTitle("Dashboard")
     }
 
