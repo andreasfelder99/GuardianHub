@@ -10,6 +10,8 @@ struct BreachCheckDetailView: View {
 
     @State private var isRunning = false
     @State private var errorMessage: String?
+    @State private var rateLimitedUntil: Date?
+
 
     private var resolution: BreachCheckServiceResolution {
         BreachCheckServiceResolver.resolve(preferredMode: runtimeSettings.preferredMode)
@@ -36,6 +38,11 @@ struct BreachCheckDetailView: View {
                 Section {
                     Text(errorMessage)
                         .foregroundStyle(.red)
+                }
+            }
+            if isRateLimited {
+                Section {
+                    RateLimitNoticeView(until: rateLimitedUntil ?? .now)
                 }
             }
             
@@ -88,11 +95,13 @@ struct BreachCheckDetailView: View {
                 } label: {
                     if isRunning {
                         ProgressView()
+                    } else if isRateLimited {
+                        Label("Try Again (\(secondsUntilRetry)s)", systemImage: "hourglass")
                     } else {
                         Label("Run Check", systemImage: "arrow.clockwise")
                     }
                 }
-                .disabled(isRunning)
+                .disabled(isRunning || isRateLimited)
             }
         }
     }
@@ -103,6 +112,10 @@ struct BreachCheckDetailView: View {
 
         Task {
             do {
+                if let until = rateLimitedUntil, until <= .now {
+                    rateLimitedUntil = nil
+                }
+
                 runtimeSettings.lastResolutionMessage = resolution.reason
                 let result = try await resolution.service.check(emailAddress: check.emailAddress)
                 await MainActor.run {
@@ -111,10 +124,34 @@ struct BreachCheckDetailView: View {
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = "Check failed: \(error.localizedDescription)"
+                    if let hibpError = error as? HIBPError {
+                        switch hibpError {
+                        case .rateLimited(let retryAfterSeconds):
+                            rateLimitedUntil = Date().addingTimeInterval(TimeInterval(retryAfterSeconds))
+                            errorMessage = "Rate limit reached. Please wait \(retryAfterSeconds) seconds and try again."
+                        default:
+                            errorMessage = "Check failed: \(hibpError.localizedDescription)"
+                        }
+                    } else {
+                        errorMessage = "Check failed: \(error.localizedDescription)"
+                    }
                     isRunning = false
                 }
             }
         }
     }
+
+    private var isRateLimited: Bool {
+        if let until = rateLimitedUntil {
+            return until > .now
+        }
+        return false
+    }
+
+    private var secondsUntilRetry: Int {
+        guard let until = rateLimitedUntil else { return 0 }
+        let seconds = Int(until.timeIntervalSinceNow.rounded(.up))
+        return max(0, seconds)
+    }
+
 }
