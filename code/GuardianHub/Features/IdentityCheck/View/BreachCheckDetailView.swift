@@ -3,13 +3,19 @@ import SwiftData
 
 struct BreachCheckDetailView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(IdentityCheckRuntimeSettings.self) private var runtimeSettings
+
 
     let check: BreachCheck
 
     @State private var isRunning = false
     @State private var errorMessage: String?
 
-    private let service: BreachCheckServicing = StubBreachCheckService()
+    private var resolution: BreachCheckServiceResolution {
+        BreachCheckServiceResolver.resolve(preferredMode: runtimeSettings.preferredMode)
+    }
+
+    
 
     var body: some View {
         List {
@@ -32,6 +38,8 @@ struct BreachCheckDetailView: View {
                         .foregroundStyle(.red)
                 }
             }
+            
+            IdentityCheckDataSourceSection(resolutionText: resolution.reason)
 
             Section("Summary") {
                 LabeledContent("Email", value: check.emailAddress)
@@ -95,7 +103,8 @@ struct BreachCheckDetailView: View {
 
         Task {
             do {
-                let result = try await service.check(emailAddress: check.emailAddress)
+                runtimeSettings.lastResolutionMessage = resolution.reason
+                let result = try await resolution.service.check(emailAddress: check.emailAddress)
                 await MainActor.run {
                     BreachCheckStore.apply(result, to: check)
                     isRunning = false

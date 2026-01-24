@@ -2,14 +2,17 @@ import SwiftUI
 
 struct RootNavigationView: View {
     @State private var navModel = AppNavigationModel()
+    @State private var identitySettings = IdentityCheckRuntimeSettings()
 
     var body: some View {
         #if os(macOS)
         SidebarSplitView()
             .environment(navModel)
+            .environment(identitySettings)
         #else
         AdaptiveNavigationHost()
             .environment(navModel)
+            .environment(identitySettings)
         #endif
     }
 }
