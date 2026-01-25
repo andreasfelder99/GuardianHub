@@ -20,7 +20,11 @@ struct WebAuditorView: View {
                 List {
                     Section {
                         ForEach(scans) { scan in
-                        WebScanRow(scan: scan)
+                        NavigationLink {
+                            WebScanDetailView(scan: scan)
+                        } label: {
+                            WebScanRow(scan: scan)
+                        }
                             .contextMenu {
                                 Button(role: .destructive) {
                                     modelContext.delete(scan)
