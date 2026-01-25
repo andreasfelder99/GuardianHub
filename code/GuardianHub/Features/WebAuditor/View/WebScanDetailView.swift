@@ -4,6 +4,8 @@ import SwiftData
 struct WebScanDetailView: View {
     @Environment(\.modelContext) private var modelContext
 
+    private let headerAuditor: SecurityHeaderAuditing = SecurityHeaderAuditor()
+
     let scan: WebScan
 
     @State private var isRunning = false
@@ -60,7 +62,7 @@ struct WebScanDetailView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    runStubScan()
+                    runScan()
                 } label: {
                     if isRunning {
                         ProgressView()
@@ -93,20 +95,40 @@ struct WebScanDetailView: View {
         return scan.isTLSValid ? .secondary : .orange
     }
 
-    private func runStubScan() {
-        errorMessage = nil
-        isRunning = true
+    private func runScan() {
+    errorMessage = nil
 
-        Task { @MainActor in
-            // Stub behavior: ensures UI wiring is correct before we add real scanning.
-            scan.lastScannedAt = .now
-            scan.tlsSummary = "Scanned (stub)"
-            scan.headerSummary = "Scanned (stub)"
-            scan.isTLSValid = true
-            scan.hasHSTS = true
-            scan.hasCSP = false
+    guard let url = URL(string: scan.urlString) else {
+        errorMessage = "Invalid URL. Please edit the entry and try again."
+        return
+    }
 
-            isRunning = false
+    isRunning = true
+
+    Task {
+        do {
+            let headerResult = try await headerAuditor.audit(url: url)
+
+            await MainActor.run {
+                scan.lastScannedAt = headerResult.scannedAt
+
+                scan.hasHSTS = headerResult.hasHSTS
+                scan.hasCSP = headerResult.hasCSP
+
+                scan.headerSummary = headerResult.summary
+
+                if scan.tlsSummary == "Not scanned" {
+                    scan.tlsSummary = "Pending TLS scan"
+                }
+
+                isRunning = false
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = "Scan failed: \(error.localizedDescription)"
+                isRunning = false
+            }
+        }
         }
     }
 }
