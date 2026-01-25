@@ -36,8 +36,15 @@ struct WebScanRow: View {
     }
 
     private var iconColor: Color {
-        if scan.lastScannedAt == nil { return .secondary }
-        return scan.isTLSValid ? .secondary : .orange
+        if scan.lastScannedAt == nil {
+            return .secondary
+        }
+
+        if scan.isTLSValid {
+            return .green
+        }
+
+        return .orange
     }
 
     private var subtitle: String {
