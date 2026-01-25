@@ -27,6 +27,13 @@ struct IdentityCheckView: View {
                             } label: {
                                 BreachCheckRow(check: check)
                             }
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    modelContext.delete(check)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
                         .onDelete(perform: delete)
                     }
