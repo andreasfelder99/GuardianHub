@@ -16,3 +16,4 @@ struct WebAuditExplanation: Sendable, Codable, Hashable {
         case high
     }
 }
+//TODO rename nextSteps to why can i still trust this site?

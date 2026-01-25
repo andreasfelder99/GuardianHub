@@ -57,12 +57,6 @@ struct WebAuditExplanationSheet: View {
                     }
                 }
 
-                Section {
-                    Text(viewModel.statusText)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
                 if !explanation.keyPoints.isEmpty {
                     Section("Key points") {
                         ForEach(explanation.keyPoints, id: \.self) { point in
@@ -72,17 +66,27 @@ struct WebAuditExplanationSheet: View {
                 }
 
                 if let why = explanation.whyTLSIsTrusted, !why.isEmpty {
-                    Section("Why is TLS trusted?") {
-                        Text(why)
+                    Section("Why is this TLS certificate trusted?") {
+                        if let attributed = try? AttributedString(markdown: why) {
+                            Text(attributed)
+                        } else {
+                            Text(why)
+                        }
                     }
                 }
 
                 if !explanation.nextSteps.isEmpty {
-                    Section("Recommended next steps") {
+                    Section("Why this site is still trusted and safe") {
                         ForEach(explanation.nextSteps, id: \.self) { step in
                             Text(step)
                         }
                     }
+                }
+
+                Section {
+                    Text(viewModel.statusText)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
         } else {
