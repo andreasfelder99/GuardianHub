@@ -58,7 +58,7 @@ final class TLSAuditor: NSObject, TLSAuditing, URLSessionDelegate {
             if trusted {
                 completionHandler(.useCredential, URLCredential(trust: trust))
             } else {
-                completionHandler(.performDefaultHandling, nil)
+                completionHandler(.cancelAuthenticationChallenge, nil)
             }
             return
         }
