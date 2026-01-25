@@ -13,6 +13,10 @@ struct DashboardView: View {
                 IdentityCheckSummaryTile(
                     onOpen: { navModel.selectedSection = .identityCheck }
                 )
+
+                WebAuditorSummaryTile(
+                    onOpen: { navModel.selectedSection = .webAuditor }
+                )
             }
             .padding()
         }
