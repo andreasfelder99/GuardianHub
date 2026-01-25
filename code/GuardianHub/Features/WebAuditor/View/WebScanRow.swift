@@ -10,7 +10,7 @@ struct WebScanRow: View {
                 .foregroundStyle(iconColor)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(scan.urlString)
+                Text(URLNormalizer.displayDomain(from: scan.urlString))
                     .font(.headline)
                     .lineLimit(1)
 

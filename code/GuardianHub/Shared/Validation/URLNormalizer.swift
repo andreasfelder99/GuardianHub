@@ -45,4 +45,17 @@ enum URLNormalizer {
         }
         return false
     }
+
+    /// Returns the host (domain) portion of a URL for display, e.g. "apple.com" from "https://www.apple.com/path".
+    /// Strips "www." if present. Falls back to the original string if the URL cannot be parsed.
+    static func displayDomain(from urlString: String) -> String {
+        guard let url = URL(string: urlString), let host = url.host, !host.isEmpty else {
+            return urlString
+        }
+        let lower = host.lowercased()
+        if lower.hasPrefix("www.") && host.count > 4 {
+            return String(host[host.index(host.startIndex, offsetBy: 4)...])
+        }
+        return host
+    }
 }
