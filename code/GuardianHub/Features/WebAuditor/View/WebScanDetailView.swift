@@ -12,6 +12,8 @@ struct WebScanDetailView: View {
 
     @State private var isRunning = false
     @State private var errorMessage: String?
+    @State private var isPresentingExplanation = false
+
 
     var body: some View {
         List {
@@ -74,6 +76,16 @@ struct WebScanDetailView: View {
                 }
                 .disabled(isRunning)
             }
+            ToolbarItem {
+                Button {
+                    isPresentingExplanation = true
+                } label: {
+                    Label("Why?", systemImage: "sparkles")
+                }
+            }
+        }
+        .sheet(isPresented: $isPresentingExplanation) {
+            WebAuditExplanationSheet(snapshot: WebAuditScanSnapshot(from: scan))
         }
     }
 
