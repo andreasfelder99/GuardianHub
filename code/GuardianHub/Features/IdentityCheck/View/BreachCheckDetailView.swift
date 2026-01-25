@@ -4,6 +4,8 @@ import SwiftData
 struct BreachCheckDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(IdentityCheckRuntimeSettings.self) private var runtimeSettings
+    @Environment(HIBPAPIKeyNotifier.self) private var keyNotifier
+
 
 
     let check: BreachCheck
@@ -14,8 +16,10 @@ struct BreachCheckDetailView: View {
 
 
     private var resolution: BreachCheckServiceResolution {
-        BreachCheckServiceResolver.resolve(preferredMode: runtimeSettings.preferredMode)
+        _ = keyNotifier.revision // dependency anchor
+        return BreachCheckServiceResolver.resolve(preferredMode: runtimeSettings.preferredMode)
     }
+
 
     
 
@@ -34,19 +38,32 @@ struct BreachCheckDetailView: View {
                 }
             }
 
+            if isRateLimited {
+                Section {
+                    RateLimitNoticeView(until: rateLimitedUntil ?? .now)
+                }
+            }
+
             if let errorMessage {
                 Section {
                     Text(errorMessage)
                         .foregroundStyle(.red)
                 }
             }
-            if isRateLimited {
-                Section {
-                    RateLimitNoticeView(until: rateLimitedUntil ?? .now)
-                }
-            }
+            
             
             IdentityCheckDataSourceSection(resolutionText: resolution.reason)
+
+            if runtimeSettings.preferredMode == .live && resolution.modeInUse != .live {
+                Section {
+                    Label(
+                        "Live mode requires an API key. Add your key below or switch to Automatic/Mock.",
+                        systemImage: "info.circle"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
+            }
 
             HIBPAPIKeySection()
 
@@ -110,6 +127,11 @@ struct BreachCheckDetailView: View {
 
     private func runCheck() {
         errorMessage = nil
+        
+        if let until = rateLimitedUntil, until <= .now {
+            rateLimitedUntil = nil
+        }
+
         isRunning = true
 
         Task {

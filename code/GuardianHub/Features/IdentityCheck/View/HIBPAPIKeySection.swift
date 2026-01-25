@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct HIBPAPIKeySection: View {
+    @Environment(HIBPAPIKeyNotifier.self) private var keyNotifier
+
     @State private var apiKeyInput: String = ""
     @State private var isKeyStored: Bool = (HIBPAPIKeyStore.load() != nil)
     @State private var feedbackMessage: String?
@@ -56,11 +58,13 @@ struct HIBPAPIKeySection: View {
         isKeyStored = (HIBPAPIKeyStore.load() != nil)
 
         if ok {
-            apiKeyInput = "" // do not keep secrets in memory longer than necessary
+            apiKeyInput = ""
             feedbackMessage = "Saved."
+            keyNotifier.bump()
         } else {
             feedbackMessage = "Failed to save key. Please try again."
         }
+
     }
 
     private func remove() {
@@ -68,5 +72,8 @@ struct HIBPAPIKeySection: View {
         isKeyStored = (HIBPAPIKeyStore.load() != nil)
 
         feedbackMessage = ok ? "Removed." : "Failed to remove key. Please try again."
+        if ok {
+            keyNotifier.bump()
+        }
     }
 }

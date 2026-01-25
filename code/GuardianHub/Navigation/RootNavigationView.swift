@@ -3,16 +3,21 @@ import SwiftUI
 struct RootNavigationView: View {
     @State private var navModel = AppNavigationModel()
     @State private var identitySettings = IdentityCheckRuntimeSettings()
+    @State private var hibpKeyNotifier = HIBPAPIKeyNotifier()
+
 
     var body: some View {
         #if os(macOS)
         SidebarSplitView()
             .environment(navModel)
             .environment(identitySettings)
+            .environment(hibpKeyNotifier)
+
         #else
         AdaptiveNavigationHost()
             .environment(navModel)
             .environment(identitySettings)
+            .environment(hibpKeyNotifier)
         #endif
     }
 }
