@@ -11,6 +11,7 @@ struct PhoneTabView: View {
 
     var body: some View {
         TabView(selection: tabSelection) {
+            // dashboard
             NavigationStack {
                 DashboardView()
             }
@@ -19,6 +20,7 @@ struct PhoneTabView: View {
             }
             .tag(AppSection.dashboard)
 
+            // identity check
             NavigationStack {
                 IdentityCheckView()
             }
@@ -26,6 +28,15 @@ struct PhoneTabView: View {
                 Label(AppSection.identityCheck.title, systemImage: AppSection.identityCheck.systemImage)
             }
             .tag(AppSection.identityCheck)
+
+            // web auditor
+            NavigationStack {
+                WebAuditorView()
+            }
+            .tabItem {
+                Label(AppSection.webAuditor.title, systemImage: AppSection.webAuditor.systemImage)
+            }
+            .tag(AppSection.webAuditor)
         }
     }
 

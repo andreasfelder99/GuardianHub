@@ -13,7 +13,8 @@ struct GuardianHubApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             BreachCheck.self,
-            BreachEvent.self
+            BreachEvent.self,
+            WebScan.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

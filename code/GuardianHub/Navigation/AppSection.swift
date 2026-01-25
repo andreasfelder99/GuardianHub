@@ -3,6 +3,7 @@ import Foundation
 enum AppSection: String, CaseIterable, Identifiable, Hashable {
     case dashboard
     case identityCheck
+    case webAuditor
 
     var id: String { rawValue }
 
@@ -10,6 +11,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .dashboard: return "Dashboard"
         case .identityCheck: return "Identity Check"
+        case .webAuditor: return "Web Auditor"
         }
     }
 
@@ -17,6 +19,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .dashboard: return "gauge.with.dots.needle.67percent"
         case .identityCheck: return "person.text.rectangle"
+        case .webAuditor: return "globe"
         }
     }
 }

@@ -46,6 +46,8 @@ private struct SectionDetailRouter: View {
             DashboardView()
         case .identityCheck:
             IdentityCheckView()
+        case .webAuditor:
+            WebAuditorView()
         }
     }
 }
