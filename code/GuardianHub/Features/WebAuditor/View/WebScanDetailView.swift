@@ -48,12 +48,14 @@ struct WebScanDetailView: View {
             Section("TLS") {
                 LabeledContent("Status", value: scan.tlsSummary)
                 LabeledContent("Trusted", value: scan.isTLSValid ? "Yes" : "No")
+                
                 LabeledContent("Common Name", value: scan.certificateCommonName ?? "—")
-                LabeledContent("Issuer", value: scan.certificateIssuer ?? "—")
-                LabeledContent(
-                    "Valid Until",
-                    value: scan.certificateValidUntil?.formatted(date: .abbreviated, time: .omitted) ?? "—"
-                )
+                #if os(iOS)
+                    let validUntilText = scan.certificateValidUntil?.formatted(date: .abbreviated, time: .omitted) ?? "Not available on iOS"
+                #else
+                    let validUntilText = scan.certificateValidUntil?.formatted(date: .abbreviated, time: .omitted) ?? "—"
+                #endif
+                LabeledContent("Valid Until", value: validUntilText)
             }
 
             Section("Security Headers") {

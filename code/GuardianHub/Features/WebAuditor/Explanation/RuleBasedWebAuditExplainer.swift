@@ -52,8 +52,10 @@ struct RuleBasedWebAuditExplainer: WebAuditExplanationBuilding {
             nextSteps.append("No immediate changes required. Re-scan periodically.")
         }
 
-        let whyTLS = (snapshot.scannedAt != nil && tlsOK)
-            ? "The system trust evaluation passed, meaning the OS considers the server certificate chain valid and trusted for this connection."
+        let whyTLS = snapshot.isTLSValid
+            ? (snapshot.tlsDetailsAvailable
+                ? "The OS validated the certificate chain and confirmed it's trusted for this connection."
+                : "The OS trust evaluation passed, meaning the certificate chain is trusted for this connection. Detailed issuer/expiry information is not available on iOS in this app.")
             : nil
 
         return WebAuditExplanation(

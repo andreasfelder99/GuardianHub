@@ -5,24 +5,46 @@ struct FoundationModelsWebAuditExplainer: WebAuditExplanationBuilding {
     private let fallback = RuleBasedWebAuditExplainer()
 
     func explain(snapshot: WebAuditScanSnapshot) async -> WebAuditExplanation {
+        // Always compute risk in app logic (deterministic)
+        let risk = computedRiskLevel(for: snapshot)
+
         switch SystemLanguageModel.default.availability {
         case .available:
             break
         case .unavailable:
-            return await fallback.explain(snapshot: snapshot)
+            let base = await fallback.explain(snapshot: snapshot)
+            return WebAuditExplanation(
+                headline: base.headline,
+                riskLevel: risk,
+                keyPoints: base.keyPoints,
+                nextSteps: base.nextSteps,
+                whyTLSIsTrusted: base.whyTLSIsTrusted
+            )
         @unknown default:
-            return await fallback.explain(snapshot: snapshot)
+            let base = await fallback.explain(snapshot: snapshot)
+            return WebAuditExplanation(
+                headline: base.headline,
+                riskLevel: risk,
+                keyPoints: base.keyPoints,
+                nextSteps: base.nextSteps,
+                whyTLSIsTrusted: base.whyTLSIsTrusted
+            )
         }
 
         do {
             let instructions = """
-            You are a security assistant for a website audit tool.
-            Provide technical explanations that explain both WHAT security features do and WHY they matter.
-            For each security header or TLS configuration, explain:
-            - What specific attacks or vulnerabilities it prevents
-            - How the mechanism works technically
-            - What risks exist when it's missing
-            Keep explanations informative and technical while remaining accessible. Avoid fear-mongering.
+            You are a security analyst for a website audit tool.
+
+            CRITICAL RULES:
+            - Use ONLY the provided scan data.
+            - Do NOT guess or invent certificate issuer, expiration dates, or authorities.
+            - If a value is not available, say "not available" and explain it's a platform limitation (not a weakness).
+            - Avoid fear-mongering. Be calm and precise.
+
+            PLATFORM RULE:
+            - If tlsMetadataUnavailableIsNormal is true, issuer/expiry being unavailable is expected on iOS.
+            - Do NOT treat unavailable metadata as a security risk.
+            - Only mention iOS or platform limitations if tlsMetadataUnavailableIsNormal is true. If false, do not mention iOS.
             """
 
             let session = LanguageModelSession(instructions: instructions)
@@ -30,13 +52,29 @@ struct FoundationModelsWebAuditExplainer: WebAuditExplanationBuilding {
 
             let response = try await session.respond(
                 to: prompt,
-                generating: WebAuditExplanation.self
+                generating: WebAuditExplanationDraft.self
             )
 
-            return response.content
+            let draft = response.content
+
+            // Merge draft with deterministic risk level
+            return WebAuditExplanation(
+                headline: draft.headline,
+                riskLevel: risk,
+                keyPoints: draft.keyPoints,
+                nextSteps: draft.nextSteps,
+                whyTLSIsTrusted: draft.whyTLSIsTrusted
+            )
 
         } catch LanguageModelSession.GenerationError.guardrailViolation {
-            return await fallback.explain(snapshot: snapshot)
+            let base = await fallback.explain(snapshot: snapshot)
+            return WebAuditExplanation(
+                headline: base.headline,
+                riskLevel: risk,
+                keyPoints: base.keyPoints,
+                nextSteps: base.nextSteps,
+                whyTLSIsTrusted: base.whyTLSIsTrusted
+            )
 
         } catch LanguageModelSession.GenerationError.refusal(let refusal, _) {
             let base = await fallback.explain(snapshot: snapshot)
@@ -47,46 +85,91 @@ struct FoundationModelsWebAuditExplainer: WebAuditExplanationBuilding {
 
                 var adjusted = base
                 adjusted.keyPoints.append(message)
-                return adjusted
+
+                return WebAuditExplanation(
+                    headline: adjusted.headline,
+                    riskLevel: risk,
+                    keyPoints: adjusted.keyPoints,
+                    nextSteps: adjusted.nextSteps,
+                    whyTLSIsTrusted: adjusted.whyTLSIsTrusted
+                )
             } catch {
-                return base
+                return WebAuditExplanation(
+                    headline: base.headline,
+                    riskLevel: risk,
+                    keyPoints: base.keyPoints,
+                    nextSteps: base.nextSteps,
+                    whyTLSIsTrusted: base.whyTLSIsTrusted
+                )
             }
         } catch {
-            return await fallback.explain(snapshot: snapshot)
+            let base = await fallback.explain(snapshot: snapshot)
+            return WebAuditExplanation(
+                headline: base.headline,
+                riskLevel: risk,
+                keyPoints: base.keyPoints,
+                nextSteps: base.nextSteps,
+                whyTLSIsTrusted: base.whyTLSIsTrusted
+            )
         }
     }
 
+    private func computedRiskLevel(for snapshot: WebAuditScanSnapshot) -> WebAuditExplanation.RiskLevel {
+        // Deterministic and platform-safe:
+        // - issuer/expiry availability must not affect risk on iOS
+        guard snapshot.scannedAt != nil else { return .review }
+
+        if snapshot.isTLSValid == false { return .high }
+
+        // Header posture: treat missing HSTS/CSP as review (defense-in-depth)
+        if snapshot.hasHSTS == false || snapshot.hasCSP == false {
+            return .review
+        }
+
+        return .ok
+    }
+
     private func makePrompt(snapshot: WebAuditScanSnapshot) -> String {
-        """
-        Explain this website security scan with technical depth.
+        let platformBlock: String
+        if snapshot.tlsMetadataUnavailableIsNormal {
+            platformBlock = """
+            tlsMetadataUnavailableIsNormal: true
+            Platform note: \(snapshot.platformNote ?? "Not available")
+            """
+        } else {
+            platformBlock = ""   // macOS: do not mention iOS at all
+        }
 
-        Output requirements:
-        - headline: short and reassuring
-        - riskLevel: ok, review, or high
-        - keyPoints: 3-6 bullet points. For each security feature: Explain WHAT it does and WHY it matters (what attacks it prevents, how it works)
-        - nextSteps: If any security headers (HSTS, CSP) are missing, list them and explain why the site is still trusted and safe despite their absence. Explain what each missing header does and why its absence is not unsafe (e.g., TLS still provides encryption, HTTPS is still enforced). If all headers are present, this can be empty or contain a brief note about the good security posture.
-        - whyTLSIsTrusted: if TLS trusted is true, explain the certificate chain validation process in maximum 4 sentences (use plain text or properly formatted markdown); otherwise null
+        return """
+        Create a concise explanation of this web security scan for a non-technical but informed user.
 
-        For each security feature, explain:
-        - HSTS: Explain that it prevents protocol downgrade attacks and man-in-the-middle attacks by forcing HTTPS. Explain how the browser enforces this and what max-age means. If missing, note that HTTPS is still enforced by the TLS connection itself, but HSTS adds an extra layer by preventing downgrade attacks on subsequent visits.
-        - CSP: Explain that it mitigates XSS attacks by restricting which sources can load scripts, styles, and other resources. Explain how it prevents code injection. If missing, note that the site can still be secure if proper input validation and output encoding are implemented, but CSP provides defense-in-depth.
-        - TLS: Explain what encryption provides (confidentiality, integrity, authentication) and what attacks it prevents (eavesdropping, tampering, impersonation).
+        OUTPUT:
+        - headline: 6-10 words, specific to THIS scan (avoid generic definitions)
+        - keyPoints: 3-5 short bullets, each must reference scan data
+        - nextSteps: 2-4 actionable bullets (only suggest changes relevant to scan)
+        - whyTLSIsTrusted: if TLS trusted is true, explain in max 3 sentences.
+        If tlsMetadataUnavailableIsNormal is true, explicitly state issuer/expiry are not available on iOS and that this is expected.
 
-        Scan:
+        IMPORTANT RULE:
+        If TLS trusted is true AND tlsMetadataUnavailableIsNormal is true,
+        do NOT frame issuer/expiry as "unknown risk". Describe it as "not available on iOS".
+
+        SCAN DATA:
         URL: \(snapshot.urlString)
-        ScannedAt: \(snapshot.scannedAt?.formatted() ?? "never")
+        Last scanned: \(snapshot.scannedAt?.formatted() ?? "never")
 
         TLS trusted: \(snapshot.isTLSValid ? "true" : "false")
         TLS summary: \(snapshot.tlsSummary)
-        Certificate CN: \(snapshot.certificateCommonName ?? "unknown")
-        Certificate issuer: \(snapshot.certificateIssuer ?? "unknown")
-        Certificate valid until: \(snapshot.certificateValidUntil?.formatted() ?? "unknown")
+        Certificate CN: \(snapshot.certificateCommonName ?? "not available")
+        Certificate issuer: \(snapshot.certificateIssuer ?? "not available")
+        Certificate valid until: \(snapshot.certificateValidUntil?.formatted() ?? "not available")
+        TLS details available: \(snapshot.tlsDetailsAvailable ? "true" : "false")
 
         HSTS present: \(snapshot.hasHSTS ? "true" : "false")
         CSP present: \(snapshot.hasCSP ? "true" : "false")
         Header summary: \(snapshot.headerSummary)
 
-        Platform note: \(snapshot.platformNote ?? "none")
+        \(platformBlock)
         """
-    }
+    }    
 }

@@ -76,7 +76,7 @@ struct WebAuditExplanationSheet: View {
                 }
 
                 if !explanation.nextSteps.isEmpty {
-                    Section("Why this site is still trusted and safe") {
+                    Section("General recommendations") {
                         ForEach(explanation.nextSteps, id: \.self) { step in
                             Text(step)
                         }
