@@ -96,39 +96,40 @@ struct WebScanDetailView: View {
     }
 
     private func runScan() {
-    errorMessage = nil
+        errorMessage = nil
 
-    guard let url = URL(string: scan.urlString) else {
-        errorMessage = "Invalid URL. Please edit the entry and try again."
-        return
-    }
-
-    isRunning = true
-
-    Task {
-        do {
-            let headerResult = try await headerAuditor.audit(url: url)
-
-            await MainActor.run {
-                scan.lastScannedAt = headerResult.scannedAt
-
-                scan.hasHSTS = headerResult.hasHSTS
-                scan.hasCSP = headerResult.hasCSP
-
-                scan.headerSummary = headerResult.summary
-
-                if scan.tlsSummary == "Not scanned" {
-                    scan.tlsSummary = "Pending TLS scan"
-                }
-
-                isRunning = false
-            }
-        } catch {
-            await MainActor.run {
-                errorMessage = "Scan failed: \(error.localizedDescription)"
-                isRunning = false
-            }
+        guard let normalized = URLNormalizer.normalizeForWebScan(scan.urlString),
+            let url = URL(string: normalized) else {
+            errorMessage = "Invalid URL. Please edit the entry and try again."
+            return
         }
+
+        isRunning = true
+
+        Task {
+            do {
+                let headerResult = try await headerAuditor.audit(url: url)
+
+                await MainActor.run {
+                    scan.lastScannedAt = headerResult.scannedAt
+
+                    scan.hasHSTS = headerResult.hasHSTS
+                    scan.hasCSP = headerResult.hasCSP
+
+                    scan.headerSummary = headerResult.summary
+
+                    if scan.tlsSummary == "Not scanned" {
+                        scan.tlsSummary = "Pending TLS scan"
+                    }
+
+                    isRunning = false
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Scan failed: \(error.localizedDescription)"
+                    isRunning = false
+                }
+            }
         }
     }
 }
