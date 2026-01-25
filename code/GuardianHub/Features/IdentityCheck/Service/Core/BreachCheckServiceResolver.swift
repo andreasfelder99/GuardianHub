@@ -55,6 +55,9 @@ enum BreachCheckServiceResolver {
     }
 
     private static func makeLiveService(apiKey: String, userAgent: String) -> any BreachCheckServicing {
-        return StubBreachCheckService()
+        let config = HIBPConfiguration(apiKey: apiKey, userAgent: userAgent)
+        let client = HIBPBreachedAccountRangeClient(config: config)
+        return HIBPBreachCheckService(client: client)
     }
+
 }
