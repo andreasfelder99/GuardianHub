@@ -48,6 +48,8 @@ struct BreachCheckDetailView: View {
             
             IdentityCheckDataSourceSection(resolutionText: resolution.reason)
 
+            HIBPAPIKeySection()
+
             Section("Summary") {
                 LabeledContent("Email", value: check.emailAddress)
                 LabeledContent("Breaches", value: "\(check.breachCount)")
