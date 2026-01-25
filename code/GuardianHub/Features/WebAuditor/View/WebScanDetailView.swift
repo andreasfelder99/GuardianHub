@@ -5,6 +5,8 @@ struct WebScanDetailView: View {
     @Environment(\.modelContext) private var modelContext
 
     private let headerAuditor: SecurityHeaderAuditing = SecurityHeaderAuditor()
+    private let tlsAuditor: TLSAuditing = TLSAuditor()
+
 
     let scan: WebScan
 
@@ -108,19 +110,26 @@ struct WebScanDetailView: View {
 
         Task {
             do {
-                let headerResult = try await headerAuditor.audit(url: url)
+                async let headerResult = headerAuditor.audit(url: url)
+                async let tlsResult = tlsAuditor.audit(url: url)
+
+                let (headers, tls) = try await (headerResult, tlsResult)
 
                 await MainActor.run {
-                    scan.lastScannedAt = headerResult.scannedAt
+                    // Use the most recent scan timestamp among sub-scans
+                    scan.lastScannedAt = max(headers.scannedAt, tls.scannedAt)
 
-                    scan.hasHSTS = headerResult.hasHSTS
-                    scan.hasCSP = headerResult.hasCSP
+                    // Headers
+                    scan.hasHSTS = headers.hasHSTS
+                    scan.hasCSP = headers.hasCSP
+                    scan.headerSummary = headers.summary
 
-                    scan.headerSummary = headerResult.summary
-
-                    if scan.tlsSummary == "Not scanned" {
-                        scan.tlsSummary = "Pending TLS scan"
-                    }
+                    // TLS
+                    scan.isTLSValid = tls.isTrusted
+                    scan.tlsSummary = tls.summary
+                    scan.certificateCommonName = tls.certificateCommonName
+                    scan.certificateIssuer = tls.certificateIssuer
+                    scan.certificateValidUntil = tls.certificateValidUntil
 
                     isRunning = false
                 }

@@ -83,18 +83,18 @@ final class TLSAuditor: NSObject, TLSAuditing, URLSessionDelegate {
 
         let summary: String
         if trust == nil {
-            summary = "TLS not evaluated"
+            summary = "TLS trust not evaluated"
         } else if isTrusted {
             #if os(iOS)
-            summary = "TLS trusted (for full certificate details, use the macOS app)"
+            summary = "TLS trusted, system trust evaluation passed (for full certificate details, use the macOS app)"
             #else
-            summary = "TLS trusted"
+            summary = "TLS trusted, system trust evaluation passed"
             #endif
         } else {
             #if os(iOS)
-            summary = "TLS trust failed (for full certificate details, use the macOS app)"
+            summary = "TLS trust failed, system trust evaluation failed (for full certificate details, use the macOS app)"
             #else
-            summary = "TLS trust failed"
+            summary = "TLS trust failed, system trust evaluation failed"
             #endif
         }
 
@@ -143,29 +143,96 @@ final class TLSAuditor: NSObject, TLSAuditing, URLSessionDelegate {
 
     #if os(macOS)
     private static func issuerSummary_macOS(from cert: SecCertificate) -> String? {
-        // This uses OID parsing which is available on macOS; keep it best-effort.
         let keys: [CFString] = [kSecOIDX509V1IssuerName]
-        guard let values = SecCertificateCopyValues(cert, keys as CFArray, nil) as? [CFString: Any],
-              let issuerDict = values[kSecOIDX509V1IssuerName] as? [CFString: Any] else {
+
+        guard
+            let values = SecCertificateCopyValues(cert, keys as CFArray, nil) as? [CFString: Any],
+            let issuerDict = values[kSecOIDX509V1IssuerName] as? [CFString: Any],
+            let raw = issuerDict[kSecPropertyKeyValue]
+        else {
             return nil
         }
 
-        if let issuerName = issuerDict[kSecPropertyKeyValue] {
-            return String(describing: issuerName)
+        // The issuer value is typically an array of attribute dictionaries.
+        // We extract a human-friendly issuer string (CN preferred, else O).
+        if let items = raw as? [[CFString: Any]] {
+            func firstValue(forOID oid: String) -> String? {
+                for item in items {
+                    // label is often OID string like "2.5.4.3" (CN) / "2.5.4.10" (O)
+                    let label = (item[kSecPropertyKeyLabel] as? String) ?? (item[kSecPropertyKeyLocalizedLabel] as? String)
+                    let value = item[kSecPropertyKeyValue] as? String
+                    if label == oid, let value, !value.isEmpty { return value }
+                }
+                return nil
+            }
+
+            // OIDs we care about:
+            // CN: 2.5.4.3, O: 2.5.4.10, C: 2.5.4.6
+            let cn = firstValue(forOID: "2.5.4.3")
+            let org = firstValue(forOID: "2.5.4.10")
+
+            if let cn, let org, cn != org {
+                return "\(cn) (\(org))"
+            }
+            return cn ?? org
         }
+
+        // Fallback: at least avoid dumping the entire structure
+        if let s = raw as? String, !s.isEmpty { return s }
         return nil
     }
 
     private static func notAfterDate_macOS(from cert: SecCertificate) -> Date? {
         let keys: [CFString] = [kSecOIDX509V1ValidityNotAfter]
-        guard let values = SecCertificateCopyValues(cert, keys as CFArray, nil) as? [CFString: Any],
-              let validity = values[kSecOIDX509V1ValidityNotAfter] as? [CFString: Any],
-              let notAfter = validity[kSecPropertyKeyValue] else {
+
+        guard
+            let values = SecCertificateCopyValues(cert, keys as CFArray, nil) as? [CFString: Any],
+            let validity = values[kSecOIDX509V1ValidityNotAfter] as? [CFString: Any],
+            let raw = validity[kSecPropertyKeyValue]
+        else {
             return nil
         }
 
-        if let date = notAfter as? Date { return date }
-        if let cfDate = notAfter as? CFDate { return cfDate as Date }
+        if let date = raw as? Date { return date }
+
+        if let number = raw as? NSNumber {
+            return dateFromCertificateNumber(number)
+        }
+
+        if let dict = raw as? [CFString: Any],
+        let inner = dict[kSecPropertyKeyValue] {
+            if let date = inner as? Date { return date }
+            if let number = inner as? NSNumber { return dateFromCertificateNumber(number) }
+        }
+
+        return nil
+    }
+
+    private static func dateFromCertificateNumber(_ number: NSNumber) -> Date? {
+        let v = number.doubleValue
+
+        // Heuristic sanity window: certificates are typically valid between year 2000 and 2050.
+        func isSane(_ date: Date) -> Bool {
+            let y = Calendar(identifier: .gregorian).component(.year, from: date)
+            return (2000...2055).contains(y)
+        }
+
+        // 1) seconds since 1970
+        let unixSeconds = Date(timeIntervalSince1970: v)
+        if isSane(unixSeconds) { return unixSeconds }
+
+        // 2) seconds since Apple reference date (2001-01-01)
+        let refSeconds = Date(timeIntervalSinceReferenceDate: v)
+        if isSane(refSeconds) { return refSeconds }
+
+        // 3) milliseconds since 1970
+        let unixMillis = Date(timeIntervalSince1970: v / 1000.0)
+        if isSane(unixMillis) { return unixMillis }
+
+        // 4) milliseconds since reference date
+        let refMillis = Date(timeIntervalSinceReferenceDate: v / 1000.0)
+        if isSane(refMillis) { return refMillis }
+
         return nil
     }
     #endif
