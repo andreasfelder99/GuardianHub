@@ -19,15 +19,24 @@ struct PhotoAuditBatchDetailView: View {
     @State private var errorMessage: String?
     @State private var isShowingError = false
 
+    // iOS share sheet
+    @State private var isPresentingShareSheet = false
+
+    // macOS export confirmation
+    @State private var isShowingMacExportDone = false
+    @State private var exportedFolderURL: URL?
+
     private let preparer = StrippedExportPreparer()
+
+    // Rename state
+    @State private var isPresentingRename = false
+    @State private var draftTitle = ""
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 header
-
                 thumbnailCarousel
-
                 Divider()
 
                 if let selected = selectedItem {
@@ -46,22 +55,20 @@ struct PhotoAuditBatchDetailView: View {
         .navigationTitle(batch.title)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                if !shareURLs.isEmpty {
-                    ShareLink(items: shareURLs) {
+                Button {
+                    Task { await shareStripped() }
+                } label: {
+                    if isPreparingShare {
+                        Label("Preparing…", systemImage: "hourglass")
+                    } else {
+                        #if os(macOS)
+                        Label("Export Stripped", systemImage: "square.and.arrow.down")
+                        #else
                         Label("Share Stripped", systemImage: "square.and.arrow.up")
+                        #endif
                     }
-                } else {
-                    Button {
-                        Task { await prepareShare() }
-                    } label: {
-                        if isPreparingShare {
-                            Label("Preparing…", systemImage: "hourglass")
-                        } else {
-                            Label("Share Stripped", systemImage: "square.and.arrow.up")
-                        }
-                    }
-                    .disabled(isPreparingShare || batch.items.isEmpty)
                 }
+                .disabled(isPreparingShare || batch.items.isEmpty)
             }
 
             ToolbarItem(placement: .primaryAction) {
@@ -86,16 +93,29 @@ struct PhotoAuditBatchDetailView: View {
             }
             Button("Cancel", role: .cancel) { }
         }
+        #if os(iOS)
+        .sheet(isPresented: $isPresentingShareSheet) {
+            ShareSheet(activityItems: shareURLs)
+        }
+        #endif
+        #if os(macOS)
+        .alert("Export Complete", isPresented: $isShowingMacExportDone) {
+            Button("Reveal in Finder") {
+                if let url = exportedFolderURL {
+                    StrippedFileExporter.revealInFinder(url)
+                }
+            }
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(exportedFolderURL?.path ?? "Exported stripped images.")
+        }
+        #endif
         .onAppear {
             if selectedItemID == nil {
                 selectedItemID = batch.items.first?.persistentModelID
             }
         }
     }
-
-    // Rename state (kept here because you already added rename in this view)
-    @State private var isPresentingRename = false
-    @State private var draftTitle = ""
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -139,11 +159,16 @@ struct PhotoAuditBatchDetailView: View {
     }
 
     @MainActor
-    private func prepareShare() async {
+    private func shareStripped() async {
         isPreparingShare = true
-        shareURLs = [] // reset
+        shareURLs = []
+        exportedFolderURL = nil
 
         do {
+            #if os(iOS)
+            try await PhotosAuthorization.ensureAuthorized()
+            #endif
+
             let loader: OriginalPhotoLoading
             #if os(iOS)
             loader = IOSOriginalPhotoLoader()
@@ -161,11 +186,34 @@ struct PhotoAuditBatchDetailView: View {
                 )
             }
 
+            // Prepare stripped files in temp dir
             let urls = try await preparer.prepareStrippedFiles(refs: refs, loader: loader)
             shareURLs = urls
+
+            #if os(iOS)
+            // Present share sheet immediately
+            isPresentingShareSheet = true
+            #elseif os(macOS)
+            // Ask user for an export folder, then copy stripped files there
+            let exportFolder = try await ExportFolderPicker.pickFolder()
+            let writtenFolder = try StrippedFileExporter.exportFiles(urls, to: exportFolder)
+            exportedFolderURL = writtenFolder
+            isShowingMacExportDone = true
+            #endif
+
         } catch {
+            // ignore macOS cancel as a non-error UX
+            #if os(macOS)
+            if (error as? ExportFolderPickerError) == .canceled {
+                // user canceled export folder selection
+            } else {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                isShowingError = true
+            }
+            #else
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             isShowingError = true
+            #endif
         }
 
         isPreparingShare = false
