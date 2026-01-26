@@ -11,29 +11,25 @@ import SwiftData
 struct PrivacyGuardView: View {
     @Environment(\.modelContext) private var modelContext
 
-    // newest first
-    @Query(sort: \PhotoAudit.createdAt, order: .reverse)
-    private var audits: [PhotoAudit]
+    @Query(sort: \PhotoAuditBatch.createdAt, order: .reverse)
+    private var batches: [PhotoAuditBatch]
 
     @State private var isPresentingImportSheet = false
 
-    @State private var errorMessage: String?
-    @State private var isShowingError = false
-
     var body: some View {
         Group {
-            if audits.isEmpty {
+            if batches.isEmpty {
                 ContentUnavailableView(
-                    "No Photo Audits",
+                    "No Photo Albums",
                     systemImage: "photo.badge.shield.checkmark",
-                    description: Text("Import a photo to inspect EXIF metadata and location data.")
+                    description: Text("Import one or more photos to inspect EXIF metadata and location data.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .overlay(alignment: .bottom) {
                     Button {
                         isPresentingImportSheet = true
                     } label: {
-                        Label("Import Photo", systemImage: "square.and.arrow.down")
+                        Label("Import Photos", systemImage: "square.and.arrow.down")
                             .frame(maxWidth: 320)
                     }
                     .buttonStyle(.borderedProminent)
@@ -42,17 +38,17 @@ struct PrivacyGuardView: View {
             } else {
                 List {
                     Section {
-                        ForEach(audits) { audit in
+                        ForEach(batches) { batch in
                             NavigationLink {
-                                PhotoAuditDetailView(audit: audit)
+                                PhotoAuditBatchDetailView(batch: batch)
                             } label: {
-                                PhotoAuditRow(audit: audit)
+                                PhotoAuditBatchRow(batch: batch)
                             }
                             .contextMenu {
                                 Button(role: .destructive) {
-                                    modelContext.delete(audit)
+                                    modelContext.delete(batch)
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label("Delete Album", systemImage: "trash")
                                 }
                             }
                         }
@@ -73,50 +69,19 @@ struct PrivacyGuardView: View {
         }
         .sheet(isPresented: $isPresentingImportSheet) {
             PhotoImportSheet(
-                onImported: { imported in
+                onImported: { _ in
                     isPresentingImportSheet = false
-                    Task { await persistAudit(from: imported) }
                 },
                 onCancel: {
                     isPresentingImportSheet = false
                 }
             )
         }
-        .alert("Privacy Guard Error", isPresented: $isShowingError) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(errorMessage ?? "Unknown error")
-        }
     }
 
     private func delete(_ indexSet: IndexSet) {
         for index in indexSet {
-            modelContext.delete(audits[index])
-        }
-    }
-
-    @MainActor
-    private func persistAudit(from imported: ImportedPhoto) async {
-        do {
-            let summary = try await Task.detached(priority: .userInitiated) {
-                try await ExifReader().read(from: imported.data)
-            }.value
-
-            let audit = PhotoAudit(
-                source: imported.source,
-                originalFilename: imported.filename,
-                hasExif: summary.hasExif,
-                hasGPS: summary.hasGPS,
-                latitude: summary.latitude,
-                longitude: summary.longitude,
-                cameraMake: summary.cameraMake,
-                cameraModel: summary.cameraModel
-            )
-
-            modelContext.insert(audit)
-        } catch {
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            isShowingError = true
+            modelContext.delete(batches[index])
         }
     }
 }

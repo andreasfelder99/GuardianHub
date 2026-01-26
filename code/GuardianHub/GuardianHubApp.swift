@@ -15,7 +15,8 @@ struct GuardianHubApp: App {
             BreachCheck.self,
             BreachEvent.self,
             WebScan.self,
-            PhotoAudit.self,
+            PhotoAuditBatch.self,
+            PhotoAuditItem.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

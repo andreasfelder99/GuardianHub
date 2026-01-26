@@ -10,9 +10,9 @@ import SwiftData
 
 struct PrivacyGuardSummaryTile: View {
     // newest first
-    @Query(sort: \PhotoAudit.createdAt, order: .reverse) private var audits: [PhotoAudit]
+    @Query(sort: \PhotoAuditBatch.createdAt, order: .reverse) private var batches: [PhotoAuditBatch]
+    @Query(sort: \PhotoAuditItem.createdAt, order: .reverse) private var items: [PhotoAuditItem]
 
-    // callback when user wants to open Privacy Guard section
     let onOpen: () -> Void
 
     var body: some View {
@@ -22,9 +22,9 @@ struct PrivacyGuardSummaryTile: View {
             Divider()
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
-                metric(title: "Audits", value: "\(totalCount)")
+                metric(title: "Albums", value: "\(batchCount)")
+                metric(title: "Photos", value: "\(photoCount)")
                 metric(title: "With GPS", value: "\(gpsCount)")
-                metric(title: "Last Audit", value: lastAuditText)
             }
         }
         .padding(16)
@@ -50,7 +50,7 @@ struct PrivacyGuardSummaryTile: View {
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Label("Privacy Guard", systemImage: "shield.lefthalf.filled")
+                Label("Privacy Guard", systemImage: "checkmark.shield")
                     .font(.headline)
 
                 Text(statusText)
@@ -75,23 +75,23 @@ struct PrivacyGuardSummaryTile: View {
         ]
     }
 
-    private var totalCount: Int {
-        audits.count
-    }
-
-    private var gpsCount: Int {
-        audits.filter(\.hasGPS).count
-    }
+    private var batchCount: Int { batches.count }
+    private var photoCount: Int { items.count }
+    private var gpsCount: Int { items.filter(\.hasGPS).count }
 
     private var statusText: String {
-        if totalCount == 0 { return "No photos audited yet" }
+        if photoCount == 0 { return "No photos audited yet" }
         if gpsCount > 0 { return "\(gpsCount) item(s) expose location" }
         return "No location exposure detected"
     }
 
-    private var lastAuditText: String {
-        guard let date = audits.first?.createdAt else { return "Never" }
-        return date.formatted(.dateTime.month(.abbreviated).day().year())
+    private var accentColor: Color? {
+        guard photoCount > 0 else { return nil }
+        return gpsCount > 0 ? .orange : nil
+    }
+
+    private var borderStyle: AnyShapeStyle {
+        gpsCount > 0 ? AnyShapeStyle(Color.orange.opacity(0.35)) : AnyShapeStyle(.quaternary)
     }
 
     private func metric(title: String, value: String) -> some View {
@@ -105,17 +105,5 @@ struct PrivacyGuardSummaryTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
         }
-    }
-
-    private var accentColor: Color? {
-        guard totalCount > 0 else { return nil }
-        return gpsCount > 0 ? .orange : nil
-    }
-
-    private var borderStyle: AnyShapeStyle {
-        if gpsCount > 0 {
-            return AnyShapeStyle(Color.orange.opacity(0.35))
-        }
-        return AnyShapeStyle(.quaternary)
     }
 }
