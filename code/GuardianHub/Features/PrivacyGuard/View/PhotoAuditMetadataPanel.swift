@@ -39,9 +39,14 @@ struct PhotoAuditItemMetadataPanel: View {
 
             GroupBox("Coordinates") {
                 if let lat = item.latitude, let lon = item.longitude {
-                    VStack(alignment: .leading, spacing: 10) {
-                        LabeledContent("Latitude") { Text("\(lat)").foregroundStyle(.secondary) }
-                        LabeledContent("Longitude") { Text("\(lon)").foregroundStyle(.secondary) }
+                    VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            LabeledContent("Latitude") { Text("\(lat)").foregroundStyle(.secondary) }
+                            LabeledContent("Longitude") { Text("\(lon)").foregroundStyle(.secondary) }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        CoordinateMapPreview(latitude: lat, longitude: lon)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
