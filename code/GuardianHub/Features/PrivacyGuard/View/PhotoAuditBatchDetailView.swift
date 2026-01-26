@@ -189,6 +189,7 @@ struct PhotoAuditBatchDetailView: View {
             // Prepare stripped files in temp dir
             let urls = try await preparer.prepareStrippedFiles(refs: refs, loader: loader)
             shareURLs = urls
+            batch.strippedPhotoCount += urls.count
 
             #if os(iOS)
             // Present share sheet immediately

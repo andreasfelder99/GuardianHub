@@ -16,6 +16,8 @@ final class PhotoAuditBatch {
 
     var source: String?
 
+    var strippedPhotoCount: Int
+
     // A batch contains multiple photos
     @Relationship(deleteRule: .cascade, inverse: \PhotoAuditItem.batch)
     var items: [PhotoAuditItem]
@@ -23,11 +25,13 @@ final class PhotoAuditBatch {
     init(
         title: String = "Album (PhotosPicker)",
         source: String? = nil,
-        createdAt: Date = .now
+        createdAt: Date = .now,
+        strippedPhotoCount: Int = 0
     ) {
         self.createdAt = createdAt
         self.title = title
         self.source = source
+        self.strippedPhotoCount = strippedPhotoCount
         self.items = []
     }
 }

@@ -9,7 +9,6 @@ import SwiftUI
 import SwiftData
 
 struct PrivacyGuardSummaryTile: View {
-    // newest first
     @Query(sort: \PhotoAuditBatch.createdAt, order: .reverse) private var batches: [PhotoAuditBatch]
     @Query(sort: \PhotoAuditItem.createdAt, order: .reverse) private var items: [PhotoAuditItem]
 
@@ -24,7 +23,7 @@ struct PrivacyGuardSummaryTile: View {
             LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
                 metric(title: "Albums", value: "\(batchCount)")
                 metric(title: "Photos", value: "\(photoCount)")
-                metric(title: "With GPS", value: "\(gpsCount)")
+                metric(title: "Stripped", value: "\(strippedTotal)")
             }
         }
         .padding(16)
@@ -50,7 +49,7 @@ struct PrivacyGuardSummaryTile: View {
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Label("Privacy Guard", systemImage: "checkmark.shield")
+                Label("Privacy Guard", systemImage: "photo.badge.shield.checkmark")
                     .font(.headline)
 
                 Text(statusText)
@@ -78,6 +77,7 @@ struct PrivacyGuardSummaryTile: View {
     private var batchCount: Int { batches.count }
     private var photoCount: Int { items.count }
     private var gpsCount: Int { items.filter(\.hasGPS).count }
+    private var strippedTotal: Int { batches.reduce(0) { $0 + $1.strippedPhotoCount } }
 
     private var statusText: String {
         if photoCount == 0 { return "No photos audited yet" }
