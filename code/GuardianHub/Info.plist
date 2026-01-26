@@ -6,5 +6,7 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>GuardianHub needs access to selected photos to audit and remove sensitive EXIF metadata such as GPS location. Photos are processed locally and the originals are not modified.</string>
 </dict>
 </plist>
