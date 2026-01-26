@@ -204,7 +204,9 @@ struct PrivacyGuardView: View {
             let urls = try await exportCoordinator.prepareStrippedFiles(refs: refs)
             preparedURLs = urls
 
-            batch.strippedPhotoCount += urls.count
+            for item in batch.items {
+                item.hasBeenStripped = true
+            }
 
             #if os(iOS)
             isPresentingShareSheet = true

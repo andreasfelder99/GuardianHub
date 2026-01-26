@@ -30,6 +30,8 @@ final class PhotoAuditItem {
 
     var fileBookmark: Data?
 
+    var hasBeenStripped: Bool
+
     init(
         originalFilename: String? = nil,
         hasExif: Bool,
@@ -41,7 +43,8 @@ final class PhotoAuditItem {
         thumbnailJPEG: Data? = nil,
         assetIdentifier: String? = nil,
         fileBookmark: Data? = nil,
-        createdAt: Date = .now
+        createdAt: Date = .now,
+        hasBeenStripped: Bool = false
     ) {
         self.batch = nil
         self.createdAt = createdAt
@@ -55,5 +58,6 @@ final class PhotoAuditItem {
         self.thumbnailJPEG = thumbnailJPEG
         self.assetIdentifier = assetIdentifier
         self.fileBookmark = fileBookmark
+        self.hasBeenStripped = hasBeenStripped
     }
 }

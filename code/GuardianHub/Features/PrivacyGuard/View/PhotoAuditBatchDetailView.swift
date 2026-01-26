@@ -190,8 +190,9 @@ struct PhotoAuditBatchDetailView: View {
             let urls = try await coordinator.prepareStrippedFiles(refs: refs)
             preparedURLs = urls
 
-            // Count “stripped” only when we successfully generated sanitized outputs
-            batch.strippedPhotoCount += urls.count
+            for item in items {
+                item.hasBeenStripped = true
+            }
 
             #if os(iOS)
             isPresentingShareSheet = true

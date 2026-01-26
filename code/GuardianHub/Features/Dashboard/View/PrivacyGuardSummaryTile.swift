@@ -77,7 +77,7 @@ struct PrivacyGuardSummaryTile: View {
     private var batchCount: Int { batches.count }
     private var photoCount: Int { items.count }
     private var gpsCount: Int { items.filter(\.hasGPS).count }
-    private var strippedTotal: Int { batches.reduce(0) { $0 + $1.strippedPhotoCount } }
+    private var strippedTotal: Int { items.filter(\.hasBeenStripped).count }
 
     private var statusText: String {
         if photoCount == 0 { return "No photos audited yet" }
