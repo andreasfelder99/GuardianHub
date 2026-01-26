@@ -18,11 +18,20 @@ struct PhotoAuditBatchDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 header
 
-                thumbnailGrid
+                thumbnailCarousel
 
                 Divider()
 
-                metadataPanel
+                if let selected = selectedItem {
+                    PhotoAuditItemMetadataPanel(item: selected)
+                } else {
+                    ContentUnavailableView(
+                        "No Selection",
+                        systemImage: "hand.point.up.left",
+                        description: Text("Select a photo to view its metadata.")
+                    )
+                    .frame(maxWidth: .infinity)
+                }
             }
             .padding()
         }
@@ -46,39 +55,23 @@ struct PhotoAuditBatchDetailView: View {
         }
     }
 
-    private var columns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: 90, maximum: 160), spacing: 10, alignment: .top)
-        ]
-    }
-
-    private var thumbnailGrid: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
-            ForEach(batch.items) { item in
-                ThumbnailCell(
-                    item: item,
-                    isSelected: item.persistentModelID == selectedItemID
-                )
-                .onTapGesture {
-                    selectedItemID = item.persistentModelID
+    private var thumbnailCarousel: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(alignment: .top, spacing: 12) {
+                ForEach(batch.items) { item in
+                    ThumbnailCell(
+                        item: item,
+                        isSelected: item.persistentModelID == selectedItemID
+                    )
+                    .onTapGesture {
+                        selectedItemID = item.persistentModelID
+                    }
+                    .accessibilityAddTraits(item.persistentModelID == selectedItemID ? .isSelected : [])
                 }
-                .accessibilityAddTraits(item.persistentModelID == selectedItemID ? .isSelected : [])
             }
+            .padding(.vertical, 4)
         }
-    }
-
-    @ViewBuilder
-    private var metadataPanel: some View {
-        if let selected = selectedItem {
-            PhotoAuditItemMetadataPanel(item: selected)
-        } else {
-            ContentUnavailableView(
-                "No Selection",
-                systemImage: "hand.point.up.left",
-                description: Text("Select a photo to view its metadata.")
-            )
-            .frame(maxWidth: .infinity)
-        }
+        .scrollIndicators(.hidden)
     }
 
     private var selectedItem: PhotoAuditItem? {

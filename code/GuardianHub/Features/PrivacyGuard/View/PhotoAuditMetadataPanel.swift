@@ -15,8 +15,8 @@ struct PhotoAuditItemMetadataPanel: View {
             Text("Metadata")
                 .font(.headline)
 
-            Form {
-                Section {
+            GroupBox {
+                VStack(alignment: .leading, spacing: 10) {
                     LabeledContent("EXIF") {
                         Text(item.hasExif ? "Present" : "Not present")
                             .foregroundStyle(item.hasExif ? .primary : .secondary)
@@ -34,18 +34,22 @@ struct PhotoAuditItemMetadataPanel: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
-                Section("Coordinates") {
-                    if let lat = item.latitude, let lon = item.longitude {
+            GroupBox("Coordinates") {
+                if let lat = item.latitude, let lon = item.longitude {
+                    VStack(alignment: .leading, spacing: 10) {
                         LabeledContent("Latitude") { Text("\(lat)").foregroundStyle(.secondary) }
                         LabeledContent("Longitude") { Text("\(lon)").foregroundStyle(.secondary) }
-                    } else {
-                        Text("No location data was recorded for this photo.")
-                            .foregroundStyle(.secondary)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text("No location data was recorded for this photo.")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .scrollDisabled(true) // keeps the outer ScrollView in control
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

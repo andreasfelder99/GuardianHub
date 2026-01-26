@@ -14,13 +14,13 @@ struct ThumbnailCell: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             thumbnail
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .frame(width: 140, height: 140)              // deterministic sizing prevents overlap
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .strokeBorder(borderStyle, lineWidth: isSelected ? 2 : 1)
                 )
+                .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             Text(item.originalFilename ?? "Photo")
                 .font(.caption)
@@ -39,9 +39,10 @@ struct ThumbnailCell: View {
             Image(platformImage: image)
                 .resizable()
                 .scaledToFill()
+                .clipped()
         } else {
             ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(.quaternary.opacity(0.35))
                 Image(systemName: "photo")
                     .imageScale(.large)
