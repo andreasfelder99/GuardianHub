@@ -20,7 +20,7 @@ struct PrivacyGuardView: View {
             if audits.isEmpty {
                 ContentUnavailableView(
                     "No Photo Audits",
-                    systemImage: "photo.badge.shield.checkmark",
+                    systemImage: "shield.lefthalf.filled",
                     description: Text("Import a photo to inspect EXIF metadata and location data.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

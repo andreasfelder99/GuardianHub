@@ -17,6 +17,10 @@ struct DashboardView: View {
                 WebAuditorSummaryTile(
                     onOpen: { navModel.selectedSection = .webAuditor }
                 )
+
+                PrivacyGuardSummaryTile(
+                    onOpen: { navModel.selectedSection = .privacyGuard }
+                )
             }
             .padding()
         }
