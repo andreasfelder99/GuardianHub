@@ -13,27 +13,15 @@ struct PhotoAuditBatchDetailView: View {
 
     @State private var selectedItemID: PersistentIdentifier?
 
-    @State private var isPreparingExport = false
-    @State private var preparedURLs: [URL] = []
-
-    @State private var errorMessage: String?
-    @State private var isShowingError = false
-
-    // iOS share sheet
-    @State private var isPresentingShareSheet = false
-
-    // macOS export confirmation
-    @State private var isShowingMacExportDone = false
-    @State private var exportedFolderURL: URL?
+    // Centralized export/share workflow (@Observable)
+    @State private var exportWorkflow = StrippedExportWorkflow()
 
     // Rename state
     @State private var isPresentingRename = false
     @State private var draftTitle = ""
 
-    @State private var lastExportCount: Int?
+    // iOS “prepared” notice after share sheet dismiss
     @State private var isShowingPreparedNotice = false
-
-    private let coordinator = StrippedExportCoordinator()
 
     var body: some View {
         ScrollView {
@@ -48,7 +36,7 @@ struct PhotoAuditBatchDetailView: View {
                     PhotoAuditItemMetadataPanel(
                         item: selected,
                         onExportSelected: {
-                            Task { await exportSelectedPhoto(selected) }
+                            Task { await exportWorkflow.runExport(for: [selected]) }
                         }
                     )
                 } else {
@@ -66,9 +54,9 @@ struct PhotoAuditBatchDetailView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    Task { await exportWholeAlbum() }
+                    Task { await exportWorkflow.runExport(for: batch.items) }
                 } label: {
-                    if isPreparingExport {
+                    if exportWorkflow.isRunning {
                         Label("Preparing…", systemImage: "hourglass")
                     } else {
                         #if os(macOS)
@@ -78,7 +66,7 @@ struct PhotoAuditBatchDetailView: View {
                         #endif
                     }
                 }
-                .disabled(isPreparingExport || batch.items.isEmpty)
+                .disabled(exportWorkflow.isRunning || batch.items.isEmpty)
             }
 
             ToolbarItem(placement: .primaryAction) {
@@ -90,11 +78,13 @@ struct PhotoAuditBatchDetailView: View {
                 }
             }
         }
-        .alert("Privacy Guard Error", isPresented: $isShowingError) {
+        // Export workflow error alert
+        .alert("Export Error", isPresented: $exportWorkflow.isShowingError) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text(errorMessage ?? "Unknown error")
+            Text(exportWorkflow.errorMessage ?? "Unknown error")
         }
+        // Rename alert
         .alert("Rename Album", isPresented: $isPresentingRename) {
             TextField("Album name", text: $draftTitle)
             Button("Save") {
@@ -103,36 +93,39 @@ struct PhotoAuditBatchDetailView: View {
             }
             Button("Cancel", role: .cancel) { }
         }
+
         #if os(iOS)
-        .sheet(isPresented: $isPresentingShareSheet, onDismiss: {
-            if let lastExportCount {
-                isShowingPreparedNotice = true
+        // iOS share sheet for album/selected export
+        .sheet(isPresented: $exportWorkflow.isPresentingShareSheet) {
+            ShareSheet(activityItems: exportWorkflow.preparedURLs) { completed in
+                if completed, exportWorkflow.lastPreparedCount != nil {
+                    isShowingPreparedNotice = true
+                }
             }
-        }) {
-            ShareSheet(activityItems: preparedURLs)
+        }
+        .alert("Stripped Copies Ready", isPresented: $isShowingPreparedNotice) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            let c = exportWorkflow.lastPreparedCount ?? 0
+            Text("Prepared \(c) stripped photo(s). Originals were not modified.")
         }
         #endif
+
         #if os(macOS)
-        .alert("Export Complete", isPresented: $isShowingMacExportDone) {
+        // macOS export confirmation
+        .alert("Export Complete", isPresented: $exportWorkflow.isShowingMacExportDone) {
             Button("Reveal in Finder") {
-                if let url = exportedFolderURL {
+                if let url = exportWorkflow.exportedFolderURL {
                     StrippedFileExporter.revealInFinder(url)
                 }
             }
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Exported \(lastExportCount ?? 0) stripped photo(s) to:\n\(exportedFolderURL?.path ?? "")")
-        }
-        .alert("Stripped Copies Ready", isPresented: $isShowingPreparedNotice) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            if let lastExportCount {
-                Text("Prepared \(lastExportCount) stripped photo(s). Originals were not modified.")
-            } else {
-                Text("Prepared stripped photo(s). Originals were not modified.")
-            }
+            let c = exportWorkflow.lastPreparedCount ?? 0
+            Text("Exported \(c) stripped photo(s) to:\n\(exportWorkflow.exportedFolderURL?.path ?? "")")
         }
         #endif
+
         .onAppear {
             if selectedItemID == nil {
                 selectedItemID = batch.items.first?.persistentModelID
@@ -150,7 +143,7 @@ struct PhotoAuditBatchDetailView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if isPreparingExport {
+            if exportWorkflow.isRunning {
                 ProgressView()
                     .padding(.top, 6)
             }
@@ -179,61 +172,5 @@ struct PhotoAuditBatchDetailView: View {
     private var selectedItem: PhotoAuditItem? {
         guard let selectedItemID else { return nil }
         return batch.items.first(where: { $0.persistentModelID == selectedItemID })
-    }
-
-    @MainActor
-    private func exportWholeAlbum() async {
-        await exportItems(batch.items)
-    }
-
-    @MainActor
-    private func exportSelectedPhoto(_ item: PhotoAuditItem) async {
-        await exportItems([item])
-    }
-
-    @MainActor
-    private func exportItems(_ items: [PhotoAuditItem]) async {
-        isPreparingExport = true
-        preparedURLs = []
-        exportedFolderURL = nil
-
-        do {
-            #if os(iOS)
-            try await PhotosAuthorization.ensureAuthorized()
-            #endif
-
-            let refs = coordinator.refs(for: items)
-            let urls = try await coordinator.prepareStrippedFiles(refs: refs)
-            preparedURLs = urls
-            lastExportCount = urls.count
-
-            for item in items {
-                item.hasBeenStripped = true
-            }
-
-            #if os(iOS)
-            isPresentingShareSheet = true
-            #elseif os(macOS)
-            let exportFolder = try await ExportFolderPicker.pickFolder()
-            let writtenFolder = try StrippedFileExporter.exportFiles(urls, to: exportFolder)
-            exportedFolderURL = writtenFolder
-            isShowingMacExportDone = true
-            #endif
-
-        } catch {
-            #if os(macOS)
-            if (error as? ExportFolderPickerError) == .canceled {
-                // user canceled export folder selection
-            } else {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-                isShowingError = true
-            }
-            #else
-            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            isShowingError = true
-            #endif
-        }
-
-        isPreparingExport = false
     }
 }
