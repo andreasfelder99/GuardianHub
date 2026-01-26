@@ -19,6 +19,11 @@ struct PrivacyGuardView: View {
     @State private var errorMessage: String?
     @State private var isShowingError = false
 
+    // Rename state (for context menu)
+    @State private var isPresentingRename = false
+    @State private var renameDraftTitle = ""
+    @State private var batchToRename: PhotoAuditBatch?
+
     // Background processor (actor) for EXIF + thumbnail generation
     private let processor = PhotoAuditProcessor()
 
@@ -51,6 +56,14 @@ struct PrivacyGuardView: View {
                                 PhotoAuditBatchRow(batch: batch)
                             }
                             .contextMenu {
+                                Button {
+                                    beginRename(batch)
+                                } label: {
+                                    Label("Rename", systemImage: "pencil")
+                                }
+
+                                Divider()
+
                                 Button(role: .destructive) {
                                     modelContext.delete(batch)
                                 } label: {
@@ -86,6 +99,17 @@ struct PrivacyGuardView: View {
                 }
             )
         }
+        .alert("Rename Album", isPresented: $isPresentingRename) {
+            TextField("Album name", text: $renameDraftTitle)
+
+            Button("Save") {
+                saveRename()
+            }
+
+            Button("Cancel", role: .cancel) {
+                batchToRename = nil
+            }
+        }
         .alert("Privacy Guard Error", isPresented: $isShowingError) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -99,13 +123,32 @@ struct PrivacyGuardView: View {
         }
     }
 
+    private func beginRename(_ batch: PhotoAuditBatch) {
+        batchToRename = batch
+        renameDraftTitle = batch.title
+        isPresentingRename = true
+    }
+
+    @MainActor
+    private func saveRename() {
+        guard let batchToRename else { return }
+        let trimmed = renameDraftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        batchToRename.title = trimmed
+        self.batchToRename = nil
+    }
+
     @MainActor
     private func persistBatch(from imported: [ImportedPhoto]) async {
         do {
             let source = imported.first?.source
             let drafts = try await processor.process(imported)
 
-            let batch = PhotoAuditBatch(source: source)
+            let batch = PhotoAuditBatch(
+                title: "New Album",
+                source: source
+            )
+
             for draft in drafts {
                 let item = PhotoAuditItem(
                     originalFilename: draft.originalFilename,
