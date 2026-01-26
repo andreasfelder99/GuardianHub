@@ -16,8 +16,9 @@ struct PrivacyGuardView: View {
     private var audits: [PhotoAudit]
 
     @State private var isPresentingImportSheet = false
-    @State private var lastImportedFilename: String?
-    @State private var isShowingImportConfirmation = false
+
+    @State private var errorMessage: String?
+    @State private var isShowingError = false
 
     var body: some View {
         Group {
@@ -73,25 +74,49 @@ struct PrivacyGuardView: View {
         .sheet(isPresented: $isPresentingImportSheet) {
             PhotoImportSheet(
                 onImported: { imported in
-                    lastImportedFilename = imported.filename
                     isPresentingImportSheet = false
-                    isShowingImportConfirmation = true
+                    Task { await persistAudit(from: imported) }
                 },
                 onCancel: {
                     isPresentingImportSheet = false
                 }
             )
         }
-        .alert("Photo Imported", isPresented: $isShowingImportConfirmation) {
+        .alert("Privacy Guard Error", isPresented: $isShowingError) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text(lastImportedFilename ?? "The photo was imported successfully.")
+            Text(errorMessage ?? "Unknown error")
         }
     }
 
     private func delete(_ indexSet: IndexSet) {
         for index in indexSet {
             modelContext.delete(audits[index])
+        }
+    }
+
+    @MainActor
+    private func persistAudit(from imported: ImportedPhoto) async {
+        do {
+            let summary = try await Task.detached(priority: .userInitiated) {
+                try await ExifReader().read(from: imported.data)
+            }.value
+
+            let audit = PhotoAudit(
+                source: imported.source,
+                originalFilename: imported.filename,
+                hasExif: summary.hasExif,
+                hasGPS: summary.hasGPS,
+                latitude: summary.latitude,
+                longitude: summary.longitude,
+                cameraMake: summary.cameraMake,
+                cameraModel: summary.cameraModel
+            )
+
+            modelContext.insert(audit)
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            isShowingError = true
         }
     }
 }
