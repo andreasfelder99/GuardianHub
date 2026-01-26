@@ -26,7 +26,9 @@ final class PhotoAuditItem {
 
     var thumbnailJPEG: Data?
 
-    var sourceIdentifier: String?
+    var assetIdentifier: String?
+
+    var fileBookmark: Data?
 
     init(
         originalFilename: String? = nil,
@@ -37,7 +39,8 @@ final class PhotoAuditItem {
         cameraMake: String? = nil,
         cameraModel: String? = nil,
         thumbnailJPEG: Data? = nil,
-        sourceIdentifier: String? = nil,
+        assetIdentifier: String? = nil,
+        fileBookmark: Data? = nil,
         createdAt: Date = .now
     ) {
         self.batch = nil
@@ -50,6 +53,7 @@ final class PhotoAuditItem {
         self.cameraMake = cameraMake
         self.cameraModel = cameraModel
         self.thumbnailJPEG = thumbnailJPEG
-        self.sourceIdentifier = sourceIdentifier
+        self.assetIdentifier = assetIdentifier
+        self.fileBookmark = fileBookmark
     }
 }

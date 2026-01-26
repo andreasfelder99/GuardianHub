@@ -16,6 +16,12 @@ struct PrivacyGuardView: View {
 
     @State private var isPresentingImportSheet = false
 
+    @State private var errorMessage: String?
+    @State private var isShowingError = false
+
+    // Background processor (actor) for EXIF + thumbnail generation
+    private let processor = PhotoAuditProcessor()
+
     var body: some View {
         Group {
             if batches.isEmpty {
@@ -69,19 +75,57 @@ struct PrivacyGuardView: View {
         }
         .sheet(isPresented: $isPresentingImportSheet) {
             PhotoImportSheet(
-                onImported: { _ in
+                onImported: { imported in
                     isPresentingImportSheet = false
+                    Task {
+                        await persistBatch(from: imported)
+                    }
                 },
                 onCancel: {
                     isPresentingImportSheet = false
                 }
             )
         }
+        .alert("Privacy Guard Error", isPresented: $isShowingError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage ?? "Unknown error")
+        }
     }
 
     private func delete(_ indexSet: IndexSet) {
         for index in indexSet {
             modelContext.delete(batches[index])
+        }
+    }
+
+    @MainActor
+    private func persistBatch(from imported: [ImportedPhoto]) async {
+        do {
+            let source = imported.first?.source
+            let drafts = try await processor.process(imported)
+
+            let batch = PhotoAuditBatch(source: source)
+            for draft in drafts {
+                let item = PhotoAuditItem(
+                    originalFilename: draft.originalFilename,
+                    hasExif: draft.hasExif,
+                    hasGPS: draft.hasGPS,
+                    latitude: draft.latitude,
+                    longitude: draft.longitude,
+                    cameraMake: draft.cameraMake,
+                    cameraModel: draft.cameraModel,
+                    thumbnailJPEG: draft.thumbnailJPEG,
+                    assetIdentifier: draft.assetIdentifier,
+                    fileBookmark: draft.fileBookmark
+                )
+                batch.items.append(item)
+            }
+
+            modelContext.insert(batch)
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            isShowingError = true
         }
     }
 }
