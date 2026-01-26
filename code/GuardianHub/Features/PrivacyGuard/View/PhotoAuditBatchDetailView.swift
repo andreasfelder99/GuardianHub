@@ -13,8 +13,8 @@ struct PhotoAuditBatchDetailView: View {
 
     @State private var selectedItemID: PersistentIdentifier?
 
-    @State private var isPreparingShare = false
-    @State private var shareURLs: [URL] = []
+    @State private var isPreparingExport = false
+    @State private var preparedURLs: [URL] = []
 
     @State private var errorMessage: String?
     @State private var isShowingError = false
@@ -26,21 +26,28 @@ struct PhotoAuditBatchDetailView: View {
     @State private var isShowingMacExportDone = false
     @State private var exportedFolderURL: URL?
 
-    private let preparer = StrippedExportPreparer()
-
     // Rename state
     @State private var isPresentingRename = false
     @State private var draftTitle = ""
+
+    private let coordinator = StrippedExportCoordinator()
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 header
+
                 thumbnailCarousel
+
                 Divider()
 
                 if let selected = selectedItem {
-                    PhotoAuditItemMetadataPanel(item: selected)
+                    PhotoAuditItemMetadataPanel(
+                        item: selected,
+                        onExportSelected: {
+                            Task { await exportSelectedPhoto(selected) }
+                        }
+                    )
                 } else {
                     ContentUnavailableView(
                         "No Selection",
@@ -56,9 +63,9 @@ struct PhotoAuditBatchDetailView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    Task { await shareStripped() }
+                    Task { await exportWholeAlbum() }
                 } label: {
-                    if isPreparingShare {
+                    if isPreparingExport {
                         Label("Preparing…", systemImage: "hourglass")
                     } else {
                         #if os(macOS)
@@ -68,7 +75,7 @@ struct PhotoAuditBatchDetailView: View {
                         #endif
                     }
                 }
-                .disabled(isPreparingShare || batch.items.isEmpty)
+                .disabled(isPreparingExport || batch.items.isEmpty)
             }
 
             ToolbarItem(placement: .primaryAction) {
@@ -95,7 +102,7 @@ struct PhotoAuditBatchDetailView: View {
         }
         #if os(iOS)
         .sheet(isPresented: $isPresentingShareSheet) {
-            ShareSheet(activityItems: shareURLs)
+            ShareSheet(activityItems: preparedURLs)
         }
         #endif
         #if os(macOS)
@@ -127,7 +134,7 @@ struct PhotoAuditBatchDetailView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if isPreparingShare {
+            if isPreparingExport {
                 ProgressView()
                     .padding(.top, 6)
             }
@@ -159,9 +166,19 @@ struct PhotoAuditBatchDetailView: View {
     }
 
     @MainActor
-    private func shareStripped() async {
-        isPreparingShare = true
-        shareURLs = []
+    private func exportWholeAlbum() async {
+        await exportItems(batch.items)
+    }
+
+    @MainActor
+    private func exportSelectedPhoto(_ item: PhotoAuditItem) async {
+        await exportItems([item])
+    }
+
+    @MainActor
+    private func exportItems(_ items: [PhotoAuditItem]) async {
+        isPreparingExport = true
+        preparedURLs = []
         exportedFolderURL = nil
 
         do {
@@ -169,33 +186,16 @@ struct PhotoAuditBatchDetailView: View {
             try await PhotosAuthorization.ensureAuthorized()
             #endif
 
-            let loader: OriginalPhotoLoading
-            #if os(iOS)
-            loader = IOSOriginalPhotoLoader()
-            #elseif os(macOS)
-            loader = MacOriginalPhotoLoader()
-            #else
-            throw OriginalPhotoLoaderError.unsupported
-            #endif
+            let refs = coordinator.refs(for: items)
+            let urls = try await coordinator.prepareStrippedFiles(refs: refs)
+            preparedURLs = urls
 
-            let refs: [PhotoItemReference] = batch.items.map { item in
-                PhotoItemReference(
-                    filename: item.originalFilename,
-                    assetIdentifier: item.assetIdentifier,
-                    fileBookmark: item.fileBookmark
-                )
-            }
-
-            // Prepare stripped files in temp dir
-            let urls = try await preparer.prepareStrippedFiles(refs: refs, loader: loader)
-            shareURLs = urls
+            // Count “stripped” only when we successfully generated sanitized outputs
             batch.strippedPhotoCount += urls.count
 
             #if os(iOS)
-            // Present share sheet immediately
             isPresentingShareSheet = true
             #elseif os(macOS)
-            // Ask user for an export folder, then copy stripped files there
             let exportFolder = try await ExportFolderPicker.pickFolder()
             let writtenFolder = try StrippedFileExporter.exportFiles(urls, to: exportFolder)
             exportedFolderURL = writtenFolder
@@ -203,7 +203,6 @@ struct PhotoAuditBatchDetailView: View {
             #endif
 
         } catch {
-            // ignore macOS cancel as a non-error UX
             #if os(macOS)
             if (error as? ExportFolderPickerError) == .canceled {
                 // user canceled export folder selection
@@ -217,6 +216,6 @@ struct PhotoAuditBatchDetailView: View {
             #endif
         }
 
-        isPreparingShare = false
+        isPreparingExport = false
     }
 }

@@ -19,13 +19,28 @@ struct PrivacyGuardView: View {
     @State private var errorMessage: String?
     @State private var isShowingError = false
 
-    // Rename state (for context menu)
+    // Rename state (context menu)
     @State private var isPresentingRename = false
     @State private var renameDraftTitle = ""
     @State private var batchToRename: PhotoAuditBatch?
 
+    // Export/share state (context menu)
+    @State private var isPreparingExport = false
+    @State private var exportBatch: PhotoAuditBatch?
+    @State private var preparedURLs: [URL] = []
+
+    // iOS share sheet
+    @State private var isPresentingShareSheet = false
+
+    // macOS export confirmation
+    @State private var isShowingMacExportDone = false
+    @State private var exportedFolderURL: URL?
+
     // Background processor (actor) for EXIF + thumbnail generation
     private let processor = PhotoAuditProcessor()
+
+    // Reuse the same coordinator as in detail view
+    private let exportCoordinator = StrippedExportCoordinator()
 
     var body: some View {
         Group {
@@ -56,6 +71,19 @@ struct PrivacyGuardView: View {
                                 PhotoAuditBatchRow(batch: batch)
                             }
                             .contextMenu {
+                                Button {
+                                    Task { await exportAlbum(batch) }
+                                } label: {
+                                    #if os(macOS)
+                                    Label("Export Stripped", systemImage: "square.and.arrow.down")
+                                    #else
+                                    Label("Share Stripped", systemImage: "square.and.arrow.up")
+                                    #endif
+                                }
+                                .disabled(isPreparingExport || batch.items.isEmpty)
+
+                                Divider()
+
                                 Button {
                                     beginRename(batch)
                                 } label: {
@@ -99,6 +127,7 @@ struct PrivacyGuardView: View {
                 }
             )
         }
+        // Rename alert
         .alert("Rename Album", isPresented: $isPresentingRename) {
             TextField("Album name", text: $renameDraftTitle)
 
@@ -110,11 +139,31 @@ struct PrivacyGuardView: View {
                 batchToRename = nil
             }
         }
+        // Generic error alert
         .alert("Privacy Guard Error", isPresented: $isShowingError) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(errorMessage ?? "Unknown error")
         }
+        #if os(iOS)
+        // iOS share sheet for list-level export
+        .sheet(isPresented: $isPresentingShareSheet) {
+            ShareSheet(activityItems: preparedURLs)
+        }
+        #endif
+        #if os(macOS)
+        // macOS export confirmation
+        .alert("Export Complete", isPresented: $isShowingMacExportDone) {
+            Button("Reveal in Finder") {
+                if let url = exportedFolderURL {
+                    StrippedFileExporter.revealInFinder(url)
+                }
+            }
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(exportedFolderURL?.path ?? "Exported stripped images.")
+        }
+        #endif
     }
 
     private func delete(_ indexSet: IndexSet) {
@@ -137,6 +186,50 @@ struct PrivacyGuardView: View {
         batchToRename.title = trimmed
         self.batchToRename = nil
     }
+
+    @MainActor
+    private func exportAlbum(_ batch: PhotoAuditBatch) async {
+        isPreparingExport = true
+        defer { isPreparingExport = false }   // CRITICAL: never get stuck
+        exportBatch = batch
+        preparedURLs = []
+        exportedFolderURL = nil
+
+        do {
+            #if os(iOS)
+            try await PhotosAuthorization.ensureAuthorized()
+            #endif
+
+            let refs = exportCoordinator.refs(for: batch.items)
+            let urls = try await exportCoordinator.prepareStrippedFiles(refs: refs)
+            preparedURLs = urls
+
+            batch.strippedPhotoCount += urls.count
+
+            #if os(iOS)
+            isPresentingShareSheet = true
+            #elseif os(macOS)
+            let exportFolder = try await ExportFolderPicker.pickFolder()
+            let writtenFolder = try StrippedFileExporter.exportFiles(urls, to: exportFolder)
+            exportedFolderURL = writtenFolder
+            isShowingMacExportDone = true
+            #endif
+
+        } catch {
+            #if os(macOS)
+            if (error as? ExportFolderPickerError) == .canceled {
+                // user canceled folder selection — no alert
+            } else {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                isShowingError = true
+            }
+            #else
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            isShowingError = true
+            #endif
+        }
+    }
+
 
     @MainActor
     private func persistBatch(from imported: [ImportedPhoto]) async {

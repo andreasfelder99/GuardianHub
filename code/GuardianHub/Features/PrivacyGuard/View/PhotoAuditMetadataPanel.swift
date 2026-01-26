@@ -10,10 +10,28 @@ import SwiftUI
 struct PhotoAuditItemMetadataPanel: View {
     let item: PhotoAuditItem
 
+    // Callbacks provided by parent (batch detail view)
+    let onExportSelected: () -> Void
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Metadata")
-                .font(.headline)
+            HStack {
+                Text("Metadata")
+                    .font(.headline)
+
+                Spacer()
+
+                Button {
+                    onExportSelected()
+                } label: {
+                    #if os(macOS)
+                    Label("Export Selected", systemImage: "square.and.arrow.down")
+                    #else
+                    Label("Share Selected", systemImage: "square.and.arrow.up")
+                    #endif
+                }
+                .buttonStyle(.bordered)
+            }
 
             GroupBox {
                 VStack(alignment: .leading, spacing: 10) {
