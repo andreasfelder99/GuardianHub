@@ -36,6 +36,9 @@ struct PrivacyGuardView: View {
     @State private var isShowingMacExportDone = false
     @State private var exportedFolderURL: URL?
 
+    @State private var lastExportCount: Int?
+
+
     // Background processor (actor) for EXIF + thumbnail generation
     private let processor = PhotoAuditProcessor()
 
@@ -111,6 +114,11 @@ struct PrivacyGuardView: View {
                     isPresentingImportSheet = true
                 } label: {
                     Label("Import", systemImage: "square.and.arrow.down")
+                }
+            }
+            ToolbarItem(placement: .status) {
+                if isPreparingExport {
+                    ProgressView()
                 }
             }
         }
@@ -203,6 +211,9 @@ struct PrivacyGuardView: View {
             let refs = exportCoordinator.refs(for: batch.items)
             let urls = try await exportCoordinator.prepareStrippedFiles(refs: refs)
             preparedURLs = urls
+
+            preparedURLs = urls
+            lastExportCount = urls.count
 
             for item in batch.items {
                 item.hasBeenStripped = true

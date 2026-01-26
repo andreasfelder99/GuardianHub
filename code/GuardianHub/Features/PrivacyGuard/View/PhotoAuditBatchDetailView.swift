@@ -30,6 +30,9 @@ struct PhotoAuditBatchDetailView: View {
     @State private var isPresentingRename = false
     @State private var draftTitle = ""
 
+    @State private var lastExportCount: Int?
+    @State private var isShowingPreparedNotice = false
+
     private let coordinator = StrippedExportCoordinator()
 
     var body: some View {
@@ -101,7 +104,11 @@ struct PhotoAuditBatchDetailView: View {
             Button("Cancel", role: .cancel) { }
         }
         #if os(iOS)
-        .sheet(isPresented: $isPresentingShareSheet) {
+        .sheet(isPresented: $isPresentingShareSheet, onDismiss: {
+            if let lastExportCount {
+                isShowingPreparedNotice = true
+            }
+        }) {
             ShareSheet(activityItems: preparedURLs)
         }
         #endif
@@ -114,7 +121,16 @@ struct PhotoAuditBatchDetailView: View {
             }
             Button("OK", role: .cancel) { }
         } message: {
-            Text(exportedFolderURL?.path ?? "Exported stripped images.")
+            Text("Exported \(lastExportCount ?? 0) stripped photo(s) to:\n\(exportedFolderURL?.path ?? "")")
+        }
+        .alert("Stripped Copies Ready", isPresented: $isShowingPreparedNotice) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            if let lastExportCount {
+                Text("Prepared \(lastExportCount) stripped photo(s). Originals were not modified.")
+            } else {
+                Text("Prepared stripped photo(s). Originals were not modified.")
+            }
         }
         #endif
         .onAppear {
@@ -189,6 +205,7 @@ struct PhotoAuditBatchDetailView: View {
             let refs = coordinator.refs(for: items)
             let urls = try await coordinator.prepareStrippedFiles(refs: refs)
             preparedURLs = urls
+            lastExportCount = urls.count
 
             for item in items {
                 item.hasBeenStripped = true
