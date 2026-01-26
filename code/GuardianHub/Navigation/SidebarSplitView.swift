@@ -48,6 +48,8 @@ private struct SectionDetailRouter: View {
             IdentityCheckView()
         case .webAuditor:
             WebAuditorView()
+        case .privacyGuard:
+            PrivacyGuardView()
         }
     }
 }

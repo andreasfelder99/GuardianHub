@@ -37,6 +37,15 @@ struct PhoneTabView: View {
                 Label(AppSection.webAuditor.title, systemImage: AppSection.webAuditor.systemImage)
             }
             .tag(AppSection.webAuditor)
+
+            // privacy guard
+            NavigationStack {
+                PrivacyGuardView()
+            }
+            .tabItem {
+                Label(AppSection.privacyGuard.title, systemImage: AppSection.privacyGuard.systemImage)
+            }
+            .tag(AppSection.privacyGuard)
         }
     }
 
