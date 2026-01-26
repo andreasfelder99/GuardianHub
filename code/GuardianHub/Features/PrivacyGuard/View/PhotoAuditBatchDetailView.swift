@@ -13,6 +13,10 @@ struct PhotoAuditBatchDetailView: View {
 
     @State private var selectedItemID: PersistentIdentifier?
 
+    // Rename state
+    @State private var isPresentingRename = false
+    @State private var draftTitle = ""
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -35,7 +39,29 @@ struct PhotoAuditBatchDetailView: View {
             }
             .padding()
         }
-        .navigationTitle("Album")
+        .navigationTitle(batch.title)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    draftTitle = batch.title
+                    isPresentingRename = true
+                } label: {
+                    Label("Rename", systemImage: "pencil")
+                }
+            }
+        }
+        .alert("Rename Album", isPresented: $isPresentingRename) {
+            TextField("Album name", text: $draftTitle)
+
+            Button("Save") {
+                let trimmed = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    batch.title = trimmed
+                }
+            }
+
+            Button("Cancel", role: .cancel) { }
+        }
         .onAppear {
             if selectedItemID == nil {
                 selectedItemID = batch.items.first?.persistentModelID

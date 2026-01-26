@@ -13,7 +13,7 @@ struct PhotoAuditBatchRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Text(title)
+                Text(batch.title)
                     .font(.headline)
                     .lineLimit(1)
 
@@ -37,20 +37,15 @@ struct PhotoAuditBatchRow: View {
         .accessibilityLabel(accessibilitySummary)
     }
 
-    private var title: String {
-        if let source = batch.source, !source.isEmpty {
-            return "Album (\(source))"
-        }
-        return "Album"
+    private var gpsCount: Int {
+        batch.items.filter(\.hasGPS).count
     }
-
-    private var gpsCount: Int { batch.items.filter(\.hasGPS).count }
 
     private var gpsCountText: String {
         gpsCount > 0 ? "\(gpsCount) with GPS" : "No GPS"
     }
 
     private var accessibilitySummary: String {
-        "\(title), \(batch.items.count) photos, \(gpsCountText)"
+        "\(batch.title), \(batch.items.count) photos, \(gpsCountText)"
     }
 }
