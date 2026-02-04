@@ -2,6 +2,7 @@ import SwiftUI
 
 struct StrengthMeterCard: View {
     let result: PasswordAnalysisResult
+    private let estimator = PasswordCrackTimeEstimator()
 
     var body: some View {
         GroupBox {
@@ -35,9 +36,56 @@ struct StrengthMeterCard: View {
                     Text(entropyExplanationText(for: result))
                         .foregroundStyle(.secondary)
                 }
+
+                Divider()
+
+                timeToGuessSection
             }
         } label: {
             Text("Overview")
+        }
+    }
+
+    private var timeToGuessSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Time to guess (estimate)")
+                .font(.subheadline.weight(.semibold))
+
+            if result.passwordLength == 0 {
+                Text("Enter a password to see how long different attack scenarios might take.")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    scenarioRow(.online)
+                    scenarioRow(.offlineModerate)
+
+                    Text("These numbers assume an attacker searches the full space implied by the entropy estimate. Real outcomes vary by hash algorithm, rate limits, and attacker resources.")
+                        .foregroundStyle(.secondary)
+                        .font(.footnote)
+                }
+            }
+        }
+    }
+
+    private func scenarioRow(_ scenario: PasswordCrackTimeEstimator.Scenario) -> some View {
+        let estimate = estimator.estimate(entropyBits: result.entropyBits, scenario: scenario)
+
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(scenario.title)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text(estimator.formatRange(expectedSeconds: estimate.expectedSeconds, worstSeconds: estimate.worstSeconds))
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundStyle(.primary)
+            }
+
+            if let footnote = scenario.footnote {
+                Text(footnote)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -51,7 +99,6 @@ struct StrengthMeterCard: View {
     }
 
     private func entropyExplanationText(for result: PasswordAnalysisResult) -> String {
-        // Keep it friendly + transparent.
         if result.passwordLength == 0 {
             return "Start typing to see how length and character variety affect entropy."
         }
