@@ -5,6 +5,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
     case identityCheck
     case webAuditor
     case privacyGuard
+    case passwordLab
 
     var id: String { rawValue }
 
@@ -14,6 +15,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
         case .identityCheck: return "Identity Check"
         case .webAuditor: return "Web Auditor"
         case .privacyGuard: return "Privacy Guard"
+        case .passwordLab: return "Password Lab"
         }
     }
 
@@ -23,6 +25,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
         case .identityCheck: return "person.text.rectangle"
         case .webAuditor: return "globe"
         case .privacyGuard: return "shield.lefthalf.filled"
+        case .passwordLab: return "key.viewfinder"
         }
     }
 }

@@ -46,6 +46,15 @@ struct PhoneTabView: View {
                 Label(AppSection.privacyGuard.title, systemImage: AppSection.privacyGuard.systemImage)
             }
             .tag(AppSection.privacyGuard)
+
+            // password lab
+            NavigationStack {
+                PasswordLabView()
+            }
+            .tabItem {
+                Label(AppSection.passwordLab.title, systemImage: AppSection.passwordLab.systemImage)
+            }
+            .tag(AppSection.passwordLab)
         }
     }
 

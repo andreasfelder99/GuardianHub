@@ -6,7 +6,7 @@ struct SidebarSplitView: View {
     var body: some View {
         NavigationSplitView {
             // sidebar list
-             List(selection: bindingSelection) {
+            List(selection: bindingSelection) {
                 ForEach(AppSection.allCases) { section in
                     NavigationLink(value: section) {
                         Label(section.title, systemImage: section.systemImage)
@@ -50,6 +50,8 @@ private struct SectionDetailRouter: View {
             WebAuditorView()
         case .privacyGuard:
             PrivacyGuardView()
+        case .passwordLab:
+            PasswordLabView()
         }
     }
 }
