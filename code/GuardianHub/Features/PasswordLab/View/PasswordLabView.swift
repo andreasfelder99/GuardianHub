@@ -57,18 +57,19 @@ struct PasswordLabView: View {
                 VStack(spacing: 10) {
                     if model.isRevealed {
                         TextField("Type a password…", text: $model.password)
-                            .textInputAutocapitalization(.never)
 #if os(iOS)
                             .textContentType(.newPassword)
+                            .textInputAutocapitalization(.never)
                             .keyboardType(.asciiCapable)
 #endif
                             .autocorrectionDisabled()
                             .font(.body.monospaced())
                     } else {
                         SecureField("Type a password…", text: $model.password)
-                            .textInputAutocapitalization(.never)
+                            
 #if os(iOS)
                             .textContentType(.newPassword)
+                            .textInputAutocapitalization(.never)
 #endif
                             .autocorrectionDisabled()
                             .font(.body.monospaced())
