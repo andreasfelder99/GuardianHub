@@ -22,6 +22,9 @@ struct PasswordLabView: View {
         }
         .navigationTitle("Password Lab")
         .scrollIndicators(.hidden)
+#if os(iOS)
+        .scrollDismissesKeyboard(.interactively)
+#endif
     }
 
     // MARK: - Header

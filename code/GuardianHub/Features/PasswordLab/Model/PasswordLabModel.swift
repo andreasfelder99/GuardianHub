@@ -6,7 +6,15 @@ final class PasswordLabModel {
 
     // User input (never persisted, never logged)
     var password: String = "" {
-        didSet { analyze() }
+        didSet {
+            // Strip spaces – most password systems don't allow them
+            let filtered = password.replacingOccurrences(of: " ", with: "")
+            if filtered != password {
+                password = filtered
+                return // didSet will fire again with the filtered value
+            }
+            analyze()
+        }
     }
 
     // UX
