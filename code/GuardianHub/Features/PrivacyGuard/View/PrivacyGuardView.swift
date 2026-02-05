@@ -54,9 +54,9 @@ struct PrivacyGuardView: View {
                                     Task { await exportWorkflow.runExport(for: batch.items) }
                                 } label: {
                                     #if os(macOS)
-                                    Label("Export Stripped", systemImage: "square.and.arrow.down")
+                                    Label("Export Clean Copies", systemImage: "square.and.arrow.down")
                                     #else
-                                    Label("Share Stripped", systemImage: "square.and.arrow.up")
+                                    Label("Share Clean Copies", systemImage: "square.and.arrow.up")
                                     #endif
                                 }
                                 .disabled(exportWorkflow.isRunning || batch.items.isEmpty)
@@ -83,7 +83,7 @@ struct PrivacyGuardView: View {
                 }
             }
         }
-        .navigationTitle("Privacy Guard")
+        .navigationTitle("Photo Privacy Guard")
         #if os(macOS)
         .frame(minWidth: 400)
         #endif
@@ -150,11 +150,11 @@ struct PrivacyGuardView: View {
                 }
             }
         }
-        .alert("Stripped Copies Ready", isPresented: $isShowingPreparedNotice) {
+        .alert("Privacy-Safe Copies Ready", isPresented: $isShowingPreparedNotice) {
             Button("OK", role: .cancel) { }
         } message: {
             let c = exportWorkflow.lastPreparedCount ?? 0
-            Text("Prepared \(c) stripped photo(s). Originals were not modified.")
+            Text("Created \(c) clean photo(s) with location and device data removed. Your original photos were not changed.")
         }
         #endif
 
@@ -169,7 +169,7 @@ struct PrivacyGuardView: View {
             Button("OK", role: .cancel) { }
         } message: {
             let c = exportWorkflow.lastPreparedCount ?? 0
-            Text("Exported \(c) stripped photo(s) to:\n\(exportWorkflow.exportedFolderURL?.path ?? "")")
+            Text("Exported \(c) clean photo(s) with location and device data removed to:\n\(exportWorkflow.exportedFolderURL?.path ?? "")")
         }
         #endif
     }
@@ -242,10 +242,10 @@ struct PrivacyGuardView: View {
             }
             
             VStack(spacing: 8) {
-                Text("No Photo Albums")
+                Text("Protect Your Photo Privacy")
                     .font(.title2.weight(.bold))
                 
-                Text("Import one or more photos to inspect EXIF metadata and location data.")
+                Text("Photos can reveal your location, device info, and timestamps. Import photos to see what hidden data they contain, then share stripped copies with this sensitive information removed.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

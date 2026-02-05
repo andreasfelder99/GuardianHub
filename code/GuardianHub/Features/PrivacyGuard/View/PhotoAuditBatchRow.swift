@@ -79,7 +79,7 @@ struct PhotoAuditBatchRow: View {
     }
 
     private var gpsCountText: String {
-        gpsCount > 0 ? "\(gpsCount) GPS" : "No GPS"
+        gpsCount > 0 ? "\(gpsCount) with location" : "No location data"
     }
 
     private var accessibilitySummary: String {

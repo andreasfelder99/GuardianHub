@@ -12,11 +12,15 @@ struct PhotoAuditItemMetadataPanel: View {
 
     // Callbacks provided by parent (batch detail view)
     let onExportSelected: () -> Void
+    
+    private var hasPrivacyRisks: Bool {
+        item.hasGPS || item.cameraMake != nil || item.cameraModel != nil
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Metadata")
+                Text("Hidden Photo Data")
                     .font(.headline)
 
                 Spacer()
@@ -25,39 +29,62 @@ struct PhotoAuditItemMetadataPanel: View {
                     onExportSelected()
                 } label: {
                     #if os(macOS)
-                    Label("Export Selected", systemImage: "square.and.arrow.down")
+                    Label("Export Clean", systemImage: "square.and.arrow.down")
                     #else
-                    Label("Share Selected", systemImage: "square.and.arrow.up")
+                    Label("Share Clean", systemImage: "square.and.arrow.up")
                     #endif
                 }
                 .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+            
+            if hasPrivacyRisks {
+                privacyWarningBanner
             }
 
             GroupBox {
                 VStack(alignment: .leading, spacing: 10) {
-                    LabeledContent("EXIF") {
-                        Text(item.hasExif ? "Present" : "Not present")
-                            .foregroundStyle(item.hasExif ? .primary : .secondary)
+                    LabeledContent("Embedded Data") {
+                        Text(item.hasExif ? "Found" : "None")
+                            .foregroundStyle(item.hasExif ? .orange : .secondary)
                     }
-                    LabeledContent("GPS") {
-                        Text(item.hasGPS ? "Present" : "Not present")
-                            .foregroundStyle(item.hasGPS ? .primary : .secondary)
+                    LabeledContent("Location Tracking") {
+                        HStack(spacing: 4) {
+                            if item.hasGPS {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                                    .font(.caption)
+                            }
+                            Text(item.hasGPS ? "GPS found" : "Not found")
+                                .foregroundStyle(item.hasGPS ? .orange : .secondary)
+                        }
                     }
-                    LabeledContent("Camera Make") {
-                        Text(item.cameraMake ?? "—")
-                            .foregroundStyle(.secondary)
+                    LabeledContent("Device Brand") {
+                        Text(item.cameraMake ?? "Not recorded")
+                            .foregroundStyle(item.cameraMake != nil ? .primary : .secondary)
                     }
-                    LabeledContent("Camera Model") {
-                        Text(item.cameraModel ?? "—")
-                            .foregroundStyle(.secondary)
+                    LabeledContent("Device Model") {
+                        Text(item.cameraModel ?? "Not recorded")
+                            .foregroundStyle(item.cameraModel != nil ? .primary : .secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+            } label: {
+                Label("Device & Metadata", systemImage: "info.circle")
+                    .font(.subheadline.weight(.medium))
             }
 
-            GroupBox("Coordinates") {
+            GroupBox {
                 if let lat = item.latitude, let lon = item.longitude {
                     VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "location.fill")
+                                .foregroundStyle(.orange)
+                            Text("This photo reveals where it was taken")
+                                .font(.subheadline)
+                                .foregroundStyle(.orange)
+                        }
+                        
                         VStack(alignment: .leading, spacing: 10) {
                             LabeledContent("Latitude") { Text("\(lat)").foregroundStyle(.secondary) }
                             LabeledContent("Longitude") { Text("\(lon)").foregroundStyle(.secondary) }
@@ -68,12 +95,46 @@ struct PhotoAuditItemMetadataPanel: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    Text("No location data was recorded for this photo.")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text("No location data found in this photo")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+            } label: {
+                Label("Location Data", systemImage: "location")
+                    .font(.subheadline.weight(.medium))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private var privacyWarningBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.shield.fill")
+                .foregroundStyle(.orange)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Privacy Risk Detected")
+                    .font(.subheadline.weight(.semibold))
+                Text("This photo contains data that could identify you or your location. Use \"Share Clean Copy\" to remove it before sharing.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.orange.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(.orange.opacity(0.3), lineWidth: 1)
+        )
     }
 }

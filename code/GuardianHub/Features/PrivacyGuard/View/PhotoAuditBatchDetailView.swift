@@ -60,9 +60,9 @@ struct PhotoAuditBatchDetailView: View {
                         Label("Preparing…", systemImage: "hourglass")
                     } else {
                         #if os(macOS)
-                        Label("Export Stripped", systemImage: "square.and.arrow.down")
+                        Label("Export All Clean", systemImage: "square.and.arrow.down")
                         #else
-                        Label("Share Stripped", systemImage: "square.and.arrow.up")
+                        Label("Share All Clean", systemImage: "square.and.arrow.up")
                         #endif
                     }
                 }
@@ -103,11 +103,11 @@ struct PhotoAuditBatchDetailView: View {
                 }
             }
         }
-        .alert("Stripped Copies Ready", isPresented: $isShowingPreparedNotice) {
+        .alert("Privacy-Safe Copies Ready", isPresented: $isShowingPreparedNotice) {
             Button("OK", role: .cancel) { }
         } message: {
             let c = exportWorkflow.lastPreparedCount ?? 0
-            Text("Prepared \(c) stripped photo(s). Originals were not modified.")
+            Text("Created \(c) clean photo(s) with location and device data removed. Your original photos were not changed.")
         }
         #endif
 
@@ -122,7 +122,7 @@ struct PhotoAuditBatchDetailView: View {
             Button("OK", role: .cancel) { }
         } message: {
             let c = exportWorkflow.lastPreparedCount ?? 0
-            Text("Exported \(c) stripped photo(s) to:\n\(exportWorkflow.exportedFolderURL?.path ?? "")")
+            Text("Exported \(c) clean photo(s) with location and device data removed to:\n\(exportWorkflow.exportedFolderURL?.path ?? "")")
         }
         #endif
 
@@ -134,14 +134,32 @@ struct PhotoAuditBatchDetailView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("\(batch.items.count) photo(s)")
+        VStack(alignment: .leading, spacing: 8) {
+            Text("\(batch.items.count) photo(s) scanned")
                 .font(.headline)
-
-            if let source = batch.source {
-                Text("Source: \(source)")
-                    .foregroundStyle(.secondary)
+            
+            let gpsCount = batch.items.filter(\.hasGPS).count
+            if gpsCount > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text("\(gpsCount) photo(s) contain location data")
+                        .foregroundStyle(.orange)
+                }
+                .font(.subheadline)
+            } else {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text("No location data found")
+                        .foregroundStyle(.secondary)
+                }
+                .font(.subheadline)
             }
+
+            Text("Select a photo below to see its hidden data. Export clean copies to share safely.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             if exportWorkflow.isRunning {
                 ProgressView()

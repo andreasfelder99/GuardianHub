@@ -25,8 +25,8 @@ struct PrivacyGuardSummaryTile: View {
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
                 metric(title: "Albums", value: "\(batchCount)", highlight: false)
-                metric(title: "Photos", value: "\(photoCount)", highlight: false)
-                strippedMetric
+                metric(title: "Scanned", value: "\(photoCount)", highlight: false)
+                cleanedMetric
             }
         }
         .padding(16)
@@ -54,43 +54,49 @@ struct PrivacyGuardSummaryTile: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 12) {
-            // Gradient icon background
-            ZStack {
-                Circle()
-                    .fill(sectionGradient)
-                    .frame(width: 36, height: 36)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
+                // Gradient icon background
+                ZStack {
+                    Circle()
+                        .fill(sectionGradient)
+                        .frame(width: 36, height: 36)
+                    
+                    Image(systemName: "shield.lefthalf.filled")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
                 
-                Image(systemName: "shield.lefthalf.filled")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Photo Privacy Guard")
+                        .font(.headline)
+
+                    HStack(spacing: 6) {
+                        if gpsCount > 0 {
+                            PulsingDot(color: GuardianTheme.StatusGradient.warning.primaryColor, size: 6)
+                        }
+                        Text(statusText)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                Button(action: onOpen) {
+                    HStack(spacing: 4) {
+                        Text("Open")
+                        Image(systemName: "arrow.right")
+                            .font(.caption.weight(.semibold))
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(GuardianTheme.SectionColor.privacyGuard.primaryColor)
             }
             
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Privacy Guard")
-                    .font(.headline)
-
-                HStack(spacing: 6) {
-                    if gpsCount > 0 {
-                        PulsingDot(color: GuardianTheme.StatusGradient.warning.primaryColor, size: 6)
-                    }
-                    Text(statusText)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            Button(action: onOpen) {
-                HStack(spacing: 4) {
-                    Text("Open")
-                    Image(systemName: "arrow.right")
-                        .font(.caption.weight(.semibold))
-                }
-            }
-            .buttonStyle(.bordered)
-            .tint(GuardianTheme.SectionColor.privacyGuard.primaryColor)
+            Text("Scan photos for hidden location and device data, then export privacy-safe copies.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -108,9 +114,9 @@ struct PrivacyGuardSummaryTile: View {
     private var strippedTotal: Int { items.filter(\.hasBeenStripped).count }
 
     private var statusText: String {
-        if photoCount == 0 { return "No photos audited yet" }
-        if gpsCount > 0 { return "\(gpsCount) item(s) expose location" }
-        return "No location exposure detected"
+        if photoCount == 0 { return "No photos scanned yet" }
+        if gpsCount > 0 { return "\(gpsCount) photo(s) reveal your location" }
+        return "No location data found"
     }
 
     private var accentGradient: LinearGradient {
@@ -134,9 +140,9 @@ struct PrivacyGuardSummaryTile: View {
         }
     }
     
-    private var strippedMetric: some View {
+    private var cleanedMetric: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Stripped")
+            Text("Cleaned")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
             

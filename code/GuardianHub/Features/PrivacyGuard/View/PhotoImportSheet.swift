@@ -30,8 +30,13 @@ struct PhotoImportSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Select one or more images to audit metadata. Photos are processed locally.")
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Check What Your Photos Reveal")
+                        .font(.headline)
+                    
+                    Text("Photos often contain hidden data like your GPS location, device model, and when the photo was taken. Select photos to scan for this information—everything is analyzed privately on your device.")
+                        .foregroundStyle(.secondary)
+                }
 
                 #if os(iOS)
                 PhotosPicker(
@@ -76,7 +81,7 @@ struct PhotoImportSheet: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Import Photos")
+            .navigationTitle("Scan Photos")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { onCancel() }
