@@ -92,6 +92,21 @@ if http.statusCode == 429 {
 }
 ```
 
+**Mock Mode for Development & Demonstration:**
+
+The app includes a `StubBreachCheckService` that simulates API responses without requiring a real API key. This enables:
+- Development without API costs
+- Demonstrations without exposing real breach data
+- Testing of UI states (breached vs. clean)
+
+| Email Pattern | Mock Result |
+|---------------|-------------|
+| Contains `test` (e.g., `test@example.com`) | Returns 2 breaches: "ExampleBreach", "DemoLeak" |
+| Contains `pwn` (e.g., `pwned@demo.com`) | Returns 2 breaches: "ExampleBreach", "DemoLeak" |
+| Any other email | Returns no breaches (clean) |
+
+The service mode can be configured to **Automatic** (uses live API if key present, otherwise mock), **Live** (requires API key), or **Mock** (always uses stub).
+
 ---
 
 ### Use Case 2: "Can I trust this website?" (Web Auditor)
