@@ -21,6 +21,10 @@ struct DashboardView: View {
                 PrivacyGuardSummaryTile(
                     onOpen: { navModel.selectedSection = .privacyGuard }
                 )
+
+                PasswordLabSummaryTile(
+                    onOpen: { navModel.selectedSection = .passwordLab }
+                )
             }
             .padding()
         }
