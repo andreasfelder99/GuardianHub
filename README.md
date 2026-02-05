@@ -9,6 +9,7 @@ GuardianHub is a native multi-platform security application that provides users 
 ## Table of Contents
 
 - [Features Overview](#features-overview)
+- [Use Cases & I/O Requirements](#use-cases--io-requirements)
 - [Architecture](#architecture)
   - [Modular Feature-Based Architecture](#modular-feature-based-architecture)
   - [Navigation Architecture](#navigation-architecture)
@@ -58,6 +59,173 @@ Sophisticated password strength analyzer with transparent entropy calculations.
 - **Pattern detection**: keyboard sequences, repeated characters, common suffixes
 - **Crack time estimation** for online and offline attack scenarios
 - **Haptic feedback** for password strength transitions (iOS)
+
+---
+
+## Use Cases & I/O Requirements
+
+This project implements four distinct use cases, each demonstrating different I/O patterns and Apple platform capabilities:
+
+### Use Case 1: "Am I affected by data breaches?" (Identity Check)
+
+**Problem Statement:** Users want to know if their email addresses have been exposed in known data breaches.
+
+**I/O Implementation:**
+| Requirement | Implementation |
+|-------------|----------------|
+| **Web API Integration** | `HIBPBreachedAccountClient` communicates with Have I Been Pwned API v3 via `URLSession` |
+| **Data Persistence** | `BreachCheck` and `BreachEvent` SwiftData models with `@Relationship(deleteRule: .cascade)` |
+| **Secure Storage** | API key stored in iOS/macOS Keychain via `SecItemAdd`/`SecItemCopyMatching` |
+
+**Technical Details:**
+- RESTful API calls with proper HTTP headers (`hibp-api-key`, `user-agent`)
+- Rate limit handling with `Retry-After` header parsing and automatic countdown
+- Service resolver pattern enabling mock/live mode switching for development
+- SwiftData `@Query` macro for reactive UI updates when breach data changes
+
+```swift
+// API Integration
+let (data, response) = try await session.data(for: request)
+if http.statusCode == 429 {
+    let retryAfter = Self.parseRetryAfterSeconds(from: http)
+    throw HIBPError.rateLimited(retryAfterSeconds: retryAfter)
+}
+```
+
+---
+
+### Use Case 2: "Can I trust this website?" (Web Auditor)
+
+**Problem Statement:** Users want to verify the technical security of websites before entering sensitive data.
+
+**I/O Implementation:**
+| Requirement | Implementation |
+|-------------|----------------|
+| **TLS Certificate Validation** | `URLSessionDelegate` with `SecTrustEvaluateWithError` for **cryptographic** chain validation |
+| **Security Header Analysis** | HTTP response header parsing for HSTS, CSP, X-Frame-Options, etc. |
+| **Complex Networking** | Custom `URLSessionDelegate` to intercept TLS handshake and extract certificate chain |
+| **AI Explanations** | On-device FoundationModels for natural language security summaries |
+
+**Cryptographic TLS Validation:**
+
+The TLS auditor performs **actual cryptographic validation** of the certificate chain, not superficial inspection:
+
+```swift
+// SecTrustEvaluateWithError performs FULL cryptographic validation:
+// 1. Verifies digital signatures on each certificate in the chain
+// 2. Validates certificate chain from leaf → intermediate → root CA
+// 3. Checks certificate validity periods (notBefore/notAfter)
+// 4. Verifies the root certificate is in the system trust store
+// 5. Checks for certificate revocation (OCSP/CRL when available)
+// 6. Validates hostname matches certificate's CN or SAN fields
+
+var error: CFError?
+let trusted = SecTrustEvaluateWithError(trust, &error)  // Returns false if ANY check fails
+```
+
+**Certificate Chain Extraction (macOS):**
+```swift
+// Extract issuer using X.509 OID-based parsing
+let keys: [CFString] = [kSecOIDX509V1IssuerName]  // OID 2.5.4.3 (CN), 2.5.4.10 (O)
+let values = SecCertificateCopyValues(cert, keys as CFArray, nil)
+// Parse CN and Organization from ASN.1 DER-encoded issuer field
+```
+
+**Parallel Audit Execution:**
+```swift
+async let headerResult = headerAuditor.audit(url: url)  // Security headers
+async let tlsResult = tlsAuditor.audit(url: url)        // Certificate chain
+let (headers, tls) = try await (headerResult, tlsResult) // Concurrent execution
+```
+
+---
+
+### Use Case 3: "Do my photos reveal my location?" (Privacy Guard)
+
+**Problem Statement:** Photos often contain hidden GPS coordinates and camera metadata that can compromise privacy when shared.
+
+**I/O Implementation:**
+| Requirement | Implementation |
+|-------------|----------------|
+| **File I/O** | ImageIO framework (`CGImageSource`) for EXIF/TIFF/GPS dictionary extraction |
+| **Map Visualization** | MapKit integration with `MKCoordinateRegion` for interactive location display |
+| **Metadata Stripping** | `CGImageDestination` re-encoding without metadata dictionaries |
+| **Photos Library** | `PHImageManager` for iOS photo access, file bookmarks for macOS |
+
+**EXIF Extraction Pipeline:**
+```swift
+let source = CGImageSourceCreateWithData(data as CFData, nil)
+let raw = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+
+let tiff = raw[kCGImagePropertyTIFFDictionary]  // Camera make/model
+let exif = raw[kCGImagePropertyExifDictionary]  // Exposure, aperture, etc.
+let gps = raw[kCGImagePropertyGPSDictionary]    // Latitude, longitude, altitude
+```
+
+**Interactive Map Preview:**
+```swift
+Map(position: $position) {
+    Marker("Photo Location", coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon))
+}
+```
+
+**Lossless Metadata Stripping:**
+```swift
+// Re-encode at full resolution with orientation baked in, but WITHOUT metadata
+CGImageDestinationAddImage(dest, cgImage, nil)  // nil = strip all metadata
+```
+
+**Platform-Specific Export:**
+- **iOS**: Share Sheet via `UIActivityViewController` with temporary stripped files
+- **macOS**: Folder picker (`NSOpenPanel`) with Finder reveal (`NSWorkspace.shared.activateFileViewerSelecting`)
+
+---
+
+### Use Case 4: "How secure is my new password?" (Password Lab)
+
+**Problem Statement:** Users need real-time, mathematically grounded feedback on password strength—not just "must be 8 characters."
+
+**I/O Implementation:**
+| Requirement | Implementation |
+|-------------|----------------|
+| **Real-time UI** | `@Observable` model with instant entropy recalculation on each keystroke |
+| **Haptic Feedback** | CoreHaptics `CHHapticEngine` with intensity/sharpness mapped to strength category |
+| **Visual Feedback** | Swift Charts for entropy breakdown visualization |
+| **Offline Wordlist** | 10,000-word dictionary loaded from bundle for passphrase detection |
+
+**Entropy Calculation with Transparent Breakdown:**
+```swift
+// Baseline: Shannon entropy approximation
+let baselineBits = Double(length) * log2(Double(alphabetSize))
+
+// Deductions for detected patterns (shown in UI)
+adjustments.append(.init(label: "Deduction: keyboard sequence", bits: -18))
+adjustments.append(.init(label: "Deduction: dictionary word", bits: delta))
+
+// Final entropy shown with full breakdown chart
+```
+
+**Haptic Feedback on Strength Transitions:**
+```swift
+// CoreHaptics (not UIKit) for fine-grained control
+let params = [
+    CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.6),  // Stronger for "Strong"
+    CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.7)
+]
+let event = CHHapticEvent(eventType: .hapticTransient, parameters: params, relativeTime: 0)
+try engine.makePlayer(with: CHHapticPattern(events: [event], parameters: [])).start(atTime: 0)
+```
+
+**Crack Time Estimation:**
+```swift
+// Two realistic attack scenarios
+let online = Estimate(guessesPerSecond: 100)           // Rate-limited web login
+let offline = Estimate(guessesPerSecond: 1_000_000_000) // GPU hash cracking
+
+let expectedTime = 0.5 * pow(2.0, entropyBits) / guessesPerSecond
+```
+
+**Privacy Guarantee:** The password **never leaves memory**—no persistence, no logging, no network transmission.
 
 ---
 
@@ -211,7 +379,15 @@ struct PasswordCrackTimeEstimator: Sendable {
 
 ### TLS Certificate Chain Validation
 
-The Web Auditor performs **comprehensive TLS auditing** using Apple's Security framework:
+The Web Auditor performs **real cryptographic TLS validation**—not superficial string matching—using Apple's Security framework. The `SecTrustEvaluateWithError` function executes the complete X.509 certificate validation algorithm:
+
+**What `SecTrustEvaluateWithError` Actually Validates:**
+1. **Digital Signature Verification**: Cryptographically verifies RSA/ECDSA signatures on each certificate
+2. **Chain Building**: Constructs and validates the path from leaf certificate → intermediates → trusted root CA
+3. **Validity Period**: Checks `notBefore` and `notAfter` timestamps against current system time
+4. **Trust Anchor**: Verifies the root certificate exists in the system's trusted certificate store
+5. **Revocation Status**: Checks OCSP/CRL when available to detect revoked certificates
+6. **Hostname Verification**: Validates the requested hostname matches the certificate's Common Name (CN) or Subject Alternative Names (SAN)
 
 ```swift
 final class TLSAuditor: NSObject, TLSAuditing, URLSessionDelegate {
@@ -219,20 +395,33 @@ final class TLSAuditor: NSObject, TLSAuditing, URLSessionDelegate {
         if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
            let trust = challenge.protectionSpace.serverTrust {
             capturedTrust = trust
+            
+            // CRYPTOGRAPHIC validation - returns false if ANY security check fails
+            var error: CFError?
             let trusted = SecTrustEvaluateWithError(trust, &error)
-            // Extract certificate chain, issuer, validity dates
+            
+            // Extract leaf certificate for detailed inspection
+            let chain = SecTrustCopyCertificateChain(trust) as? [SecCertificate]
+            let leaf = chain?.first
         }
     }
 }
 ```
 
-**macOS-specific certificate introspection** using OID-based value extraction:
+**macOS-specific certificate introspection** using X.509 OID-based ASN.1 parsing:
 ```swift
 #if os(macOS)
 private static func issuerSummary_macOS(from cert: SecCertificate) -> String? {
+    // Extract issuer using standard X.509 OIDs
     let keys: [CFString] = [kSecOIDX509V1IssuerName]
     let values = SecCertificateCopyValues(cert, keys as CFArray, nil)
-    // Parse CN (2.5.4.3) and O (2.5.4.10) from issuer attributes
+    // Parse CN (OID 2.5.4.3) and Organization (OID 2.5.4.10) from DER-encoded issuer
+}
+
+private static func notAfterDate_macOS(from cert: SecCertificate) -> Date? {
+    // Extract validity period using X.509 validity OID
+    let keys: [CFString] = [kSecOIDX509V1ValidityNotAfter]
+    // Handle multiple date encoding formats (Unix timestamp, Apple reference date)
 }
 #endif
 ```
