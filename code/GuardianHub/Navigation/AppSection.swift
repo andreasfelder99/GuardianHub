@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 enum AppSection: String, CaseIterable, Identifiable, Hashable {
     case dashboard
@@ -27,5 +28,23 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
         case .privacyGuard: return "shield.lefthalf.filled"
         case .passwordLab: return "key.viewfinder"
         }
+    }
+    
+    var themeColor: GuardianTheme.SectionColor {
+        switch self {
+        case .dashboard: return .dashboard
+        case .identityCheck: return .identityCheck
+        case .webAuditor: return .webAuditor
+        case .privacyGuard: return .privacyGuard
+        case .passwordLab: return .passwordLab
+        }
+    }
+    
+    var gradient: LinearGradient {
+        themeColor.gradient
+    }
+    
+    var primaryColor: Color {
+        themeColor.primaryColor
     }
 }

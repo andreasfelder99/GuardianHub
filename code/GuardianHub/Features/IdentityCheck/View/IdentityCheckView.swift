@@ -7,17 +7,14 @@ struct IdentityCheckView: View {
     @Query(sort: \BreachCheck.createdAt, order: .reverse) private var checks: [BreachCheck]
 
     @State private var isPresentingAddSheet = false
+    
+    private let sectionGradient = GuardianTheme.SectionColor.identityCheck.gradient
 
     var body: some View {
         Group {
             if checks.isEmpty {
-                // empty state when no checks yet
-                ContentUnavailableView(
-                    "No Breach Checks",
-                    systemImage: "person.text.rectangle",
-                    description: Text("Add an email address to start tracking breach history.")
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // Enhanced empty state
+                emptyStateView
             } else {
                 List {
                     Section {
@@ -48,6 +45,7 @@ struct IdentityCheckView: View {
                 } label: {
                     Label("Add", systemImage: "plus")
                 }
+                .tint(GuardianTheme.SectionColor.identityCheck.primaryColor)
             }
         }
         .sheet(isPresented: $isPresentingAddSheet) {
@@ -57,6 +55,45 @@ struct IdentityCheckView: View {
                 modelContext.insert(check)
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 400)
+        #endif
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(sectionGradient.opacity(0.12))
+                    .frame(width: 100, height: 100)
+                
+                Image(systemName: "person.text.rectangle")
+                    .font(.system(size: 44, weight: .medium))
+                    .foregroundStyle(sectionGradient)
+            }
+            
+            VStack(spacing: 8) {
+                Text("No Breach Checks")
+                    .font(.title2.weight(.bold))
+                
+                Text("Add an email address to start tracking breach history.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+            
+            Button {
+                isPresentingAddSheet = true
+            } label: {
+                Label("Add Email", systemImage: "plus.circle.fill")
+                    .font(.headline)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(GuardianTheme.SectionColor.identityCheck.primaryColor)
+            .controlSize(.large)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // handle swipe to delete

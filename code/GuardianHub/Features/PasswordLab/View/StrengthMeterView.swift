@@ -3,53 +3,101 @@ import SwiftUI
 struct StrengthMeterCard: View {
     let result: PasswordAnalysisResult
     private let estimator = PasswordCrackTimeEstimator()
+    
+    @State private var animatedValue: Double = 0
 
     var body: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .firstTextBaseline) {
-                    Label("Strength", systemImage: result.category.systemImage)
+        VStack(alignment: .leading, spacing: 16) {
+            // Header with category badge
+            HStack(alignment: .center) {
+                HStack(spacing: 10) {
+                    Image(systemName: result.category.systemImage)
                         .font(.headline)
-
-                    Spacer()
-
-                    Text(result.category.rawValue)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(.thinMaterial, in: Capsule())
-                }
-
-                Gauge(value: result.meterValue) {
+                        .foregroundStyle(GuardianTheme.strengthGradient(for: result.category))
+                    
                     Text("Strength")
-                } currentValueLabel: {
-                    Text("\(Int(result.entropyBits.rounded())) bits")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.headline)
                 }
-                .gaugeStyle(.accessoryLinearCapacity)
-                .tint(tintForCategory(result.category))
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Estimated entropy")
-                        .font(.subheadline.weight(.semibold))
-                    Text(entropyExplanationText(for: result))
+                Spacer()
+
+                // Animated category badge
+                Text(result.category.rawValue)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background {
+                        Capsule()
+                            .fill(GuardianTheme.strengthGradient(for: result.category))
+                            .shadow(color: GuardianTheme.strengthColor(for: result.category).opacity(0.4), radius: 6, x: 0, y: 3)
+                    }
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: result.category)
+            }
+            
+            // Animated strength bar
+            VStack(alignment: .leading, spacing: 8) {
+                AnimatedGradientBar(
+                    progress: result.meterValue,
+                    gradient: GuardianTheme.strengthGradient(for: result.category),
+                    height: 12,
+                    cornerRadius: 6
+                )
+                
+                HStack {
+                    Text("\(Int(result.entropyBits.rounded())) bits")
+                        .font(.caption.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(GuardianTheme.strengthGradient(for: result.category))
+                    
+                    Spacer()
+                    
+                    Text("of entropy")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-
-                Divider()
-
-                timeToGuessSection
             }
-        } label: {
-            Text("Overview")
+
+            // Explanation
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Estimated entropy")
+                    .font(.subheadline.weight(.semibold))
+                Text(entropyExplanationText(for: result))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+                .overlay(GuardianTheme.strengthGradient(for: result.category).opacity(0.3))
+
+            timeToGuessSection
         }
+        .padding(16)
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.background)
+                
+                // Subtle category-colored gradient
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(GuardianTheme.strengthGradient(for: result.category).opacity(0.06))
+            }
+            .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 4)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(GuardianTheme.strengthGradient(for: result.category).opacity(0.2), lineWidth: 1)
+        }
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: result.category)
     }
 
     private var timeToGuessSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Time to guess (estimate)")
-                .font(.subheadline.weight(.semibold))
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "clock.badge.questionmark")
+                    .foregroundStyle(GuardianTheme.SectionColor.passwordLab.gradient)
+                Text("Time to guess (estimate)")
+                    .font(.subheadline.weight(.semibold))
+            }
 
             if result.passwordLength == 0 {
                 Text("Enter a password to see how long different attack scenarios might take.")
@@ -61,8 +109,9 @@ struct StrengthMeterCard: View {
                     scenarioRow(.offlineModerate)
 
                     Text("These numbers assume an attacker searches the full space implied by the entropy estimate. Real outcomes vary by hash algorithm, rate limits, and attacker resources.")
-                        .foregroundStyle(.secondary)
-                        .font(.footnote)
+                        .foregroundStyle(.tertiary)
+                        .font(.caption)
+                        .padding(.top, 4)
                 }
             }
         }
@@ -73,28 +122,29 @@ struct StrengthMeterCard: View {
 
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(scenario.title)
-                    .font(.subheadline.weight(.semibold))
+                HStack(spacing: 6) {
+                    Image(systemName: scenario == .online ? "network" : "desktopcomputer")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(scenario.title)
+                        .font(.subheadline.weight(.medium))
+                }
                 Spacer()
                 Text(estimator.formatRange(expectedSeconds: estimate.expectedSeconds, worstSeconds: estimate.worstSeconds))
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.primary)
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(GuardianTheme.strengthGradient(for: result.category))
             }
 
             if let footnote = scenario.footnote {
                 Text(footnote)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
         }
-    }
-
-    private func tintForCategory(_ category: PasswordStrengthCategory) -> Color {
-        switch category {
-        case .veryWeak: return .red
-        case .weak: return .orange
-        case .fair: return .yellow
-        case .strong: return .green
+        .padding(10)
+        .background {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.secondary.opacity(0.06))
         }
     }
 

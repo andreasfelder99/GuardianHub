@@ -13,56 +13,84 @@ struct PrivacyGuardSummaryTile: View {
     @Query(sort: \PhotoAuditItem.createdAt, order: .reverse) private var items: [PhotoAuditItem]
 
     let onOpen: () -> Void
+    
+    private let sectionGradient = GuardianTheme.SectionColor.privacyGuard.gradient
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
             Divider()
+                .overlay(sectionGradient.opacity(0.3))
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
-                metric(title: "Albums", value: "\(batchCount)")
-                metric(title: "Photos", value: "\(photoCount)")
-                metric(title: "Stripped", value: "\(strippedTotal)")
+                metric(title: "Albums", value: "\(batchCount)", highlight: false)
+                metric(title: "Photos", value: "\(photoCount)", highlight: false)
+                strippedMetric
             }
         }
         .padding(16)
-        .background(
+        .background {
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(.background)
+                
+                // Subtle gradient overlay
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(sectionGradient.opacity(0.08))
 
-                if let accentColor {
-                    Rectangle()
-                        .fill(accentColor)
-                        .frame(width: 4)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                }
+                // Gradient accent bar
+                Rectangle()
+                    .fill(accentGradient)
+                    .frame(width: 4)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(borderStyle, lineWidth: 1)
-        )
+            .shadow(color: GuardianTheme.SectionColor.privacyGuard.primaryColor.opacity(0.12), radius: 12, x: 0, y: 4)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(sectionGradient.opacity(0.25), lineWidth: 1)
+        }
     }
 
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Label("Privacy Guard", systemImage: "photo.badge.shield.checkmark")
+            // Gradient icon background
+            ZStack {
+                Circle()
+                    .fill(sectionGradient)
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: "shield.lefthalf.filled")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Privacy Guard")
                     .font(.headline)
 
-                Text(statusText)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    if gpsCount > 0 {
+                        PulsingDot(color: GuardianTheme.StatusGradient.warning.primaryColor, size: 6)
+                    }
+                    Text(statusText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
 
             Button(action: onOpen) {
-                Label("Open", systemImage: "arrow.right")
+                HStack(spacing: 4) {
+                    Text("Open")
+                    Image(systemName: "arrow.right")
+                        .font(.caption.weight(.semibold))
+                }
             }
             .buttonStyle(.bordered)
+            .tint(GuardianTheme.SectionColor.privacyGuard.primaryColor)
         }
     }
 
@@ -85,25 +113,44 @@ struct PrivacyGuardSummaryTile: View {
         return "No location exposure detected"
     }
 
-    private var accentColor: Color? {
-        guard photoCount > 0 else { return nil }
-        return gpsCount > 0 ? .orange : nil
+    private var accentGradient: LinearGradient {
+        if gpsCount > 0 {
+            return GuardianTheme.StatusGradient.warning.gradient
+        }
+        return sectionGradient
     }
 
-    private var borderStyle: AnyShapeStyle {
-        gpsCount > 0 ? AnyShapeStyle(Color.orange.opacity(0.35)) : AnyShapeStyle(.quaternary)
-    }
-
-    private func metric(title: String, value: String) -> some View {
+    private func metric(title: String, value: String, highlight: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.caption)
+                .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
 
             Text(value)
-                .font(.title3.weight(.semibold))
+                .font(.title3.weight(.bold))
+                .foregroundStyle(highlight ? AnyShapeStyle(GuardianTheme.StatusGradient.warning.gradient) : AnyShapeStyle(.primary))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
+        }
+    }
+    
+    private var strippedMetric: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Stripped")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+            
+            HStack(spacing: 6) {
+                if strippedTotal > 0 {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(GuardianTheme.StatusGradient.success.gradient)
+                }
+                
+                Text("\(strippedTotal)")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(strippedTotal > 0 ? AnyShapeStyle(GuardianTheme.StatusGradient.success.gradient) : AnyShapeStyle(.primary))
+            }
         }
     }
 }

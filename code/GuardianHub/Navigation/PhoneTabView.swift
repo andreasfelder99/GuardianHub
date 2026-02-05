@@ -68,6 +68,7 @@ struct PhoneTabView: View {
             }
             .tag(PhoneTab.more)
         }
+        .tint(GuardianTheme.SectionColor.dashboard.primaryColor)
         .onAppear {
             // Ensure initial sync when opening on iPhone.
             selectedTab = tab(for: navModel.selectedSection)
@@ -82,18 +83,27 @@ struct PhoneTabView: View {
 
     private var moreRoot: some View {
         List {
-            Section("Tools") {
+            Section {
                 ForEach(moreSections) { section in
                     NavigationLink(value: section) {
-                        Label(section.title, systemImage: section.systemImage)
+                        MoreSectionRow(section: section)
                     }
                 }
+            } header: {
+                Text("Tools")
             }
 
             Section {
-                Text("Password Lab runs fully offline. Nothing is stored or sent.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 12) {
+                    Image(systemName: "lock.shield")
+                        .font(.title3)
+                        .foregroundStyle(GuardianTheme.StatusGradient.success.gradient)
+                    
+                    Text("Password Lab runs fully offline. Nothing is stored or sent.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
             }
         }
         .navigationTitle("More")
@@ -129,6 +139,43 @@ struct PhoneTabView: View {
         case .webAuditor: return .webAuditor
         case .privacyGuard, .passwordLab:
             return .more
+        }
+    }
+}
+
+// Custom row for More section with gradient icons
+private struct MoreSectionRow: View {
+    let section: AppSection
+    
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(section.gradient)
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: section.systemImage)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(section.title)
+                    .font(.body.weight(.medium))
+                
+                Text(descriptionFor(section))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private func descriptionFor(_ section: AppSection) -> String {
+        switch section {
+        case .privacyGuard: return "Audit photo metadata"
+        case .passwordLab: return "Analyze password strength"
+        default: return ""
         }
     }
 }

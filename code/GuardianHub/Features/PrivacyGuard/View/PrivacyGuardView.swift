@@ -33,26 +33,13 @@ struct PrivacyGuardView: View {
 
     // Background processor (actor) for EXIF + thumbnail generation
     private let processor = PhotoAuditProcessor()
+    
+    private let sectionGradient = GuardianTheme.SectionColor.privacyGuard.gradient
 
     var body: some View {
         Group {
             if batches.isEmpty {
-                ContentUnavailableView(
-                    "No Photo Albums",
-                    systemImage: "photo.badge.shield.checkmark",
-                    description: Text("Import one or more photos to inspect EXIF metadata and location data.")
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .overlay(alignment: .bottom) {
-                    Button {
-                        isPresentingImportSheet = true
-                    } label: {
-                        Label("Import Photos", systemImage: "square.and.arrow.down")
-                            .frame(maxWidth: 320)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .padding()
-                }
+                emptyStateView
             } else {
                 List {
                     Section {
@@ -97,6 +84,9 @@ struct PrivacyGuardView: View {
             }
         }
         .navigationTitle("Privacy Guard")
+        #if os(macOS)
+        .frame(minWidth: 400)
+        #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -104,6 +94,7 @@ struct PrivacyGuardView: View {
                 } label: {
                     Label("Import", systemImage: "square.and.arrow.down")
                 }
+                .tint(GuardianTheme.SectionColor.privacyGuard.primaryColor)
             }
 
             // Export progress indicator
@@ -236,5 +227,41 @@ struct PrivacyGuardView: View {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             isShowingError = true
         }
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(sectionGradient.opacity(0.12))
+                    .frame(width: 100, height: 100)
+                
+                Image(systemName: "photo.on.rectangle.angled")
+                    .font(.system(size: 44, weight: .medium))
+                    .foregroundStyle(sectionGradient)
+            }
+            
+            VStack(spacing: 8) {
+                Text("No Photo Albums")
+                    .font(.title2.weight(.bold))
+                
+                Text("Import one or more photos to inspect EXIF metadata and location data.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+            
+            Button {
+                isPresentingImportSheet = true
+            } label: {
+                Label("Import Photos", systemImage: "square.and.arrow.down")
+                    .font(.headline)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(GuardianTheme.SectionColor.privacyGuard.primaryColor)
+            .controlSize(.large)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

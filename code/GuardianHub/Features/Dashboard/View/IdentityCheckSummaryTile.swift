@@ -7,59 +7,87 @@ struct IdentityCheckSummaryTile: View {
 
     // callback when user wants to open identity check section
     let onOpen: () -> Void
+    
+    private let sectionGradient = GuardianTheme.SectionColor.identityCheck.gradient
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
             Divider()
+                .overlay(sectionGradient.opacity(0.3))
 
             // grid layout for the 3 metrics
             LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
-                metric(title: "Tracked", value: "\(totalCount)")
-                metric(title: "At Risk", value: "\(atRiskCount)")
-                metric(title: "Last Check", value: lastCheckedText)
+                metric(title: "Tracked", value: "\(totalCount)", highlight: false)
+                metric(title: "At Risk", value: "\(atRiskCount)", highlight: atRiskCount > 0)
+                metric(title: "Last Check", value: lastCheckedText, highlight: false)
             }
         }
         .padding(16)
-        .background(
+        .background {
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(.background)
+                
+                // Subtle gradient overlay
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(sectionGradient.opacity(0.08))
 
-                if let accentColor {
-                    Rectangle()
-                        .fill(accentColor)
-                        .frame(width: 4)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                }
+                // Gradient accent bar
+                Rectangle()
+                    .fill(accentGradient)
+                    .frame(width: 4)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(borderStyle, lineWidth: 1)
-        )
+            .shadow(color: GuardianTheme.SectionColor.identityCheck.primaryColor.opacity(0.12), radius: 12, x: 0, y: 4)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(sectionGradient.opacity(0.25), lineWidth: 1)
+        }
     }
 
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Label("Identity Check", systemImage: "person.text.rectangle")
+            // Gradient icon background
+            ZStack {
+                Circle()
+                    .fill(sectionGradient)
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: "person.text.rectangle")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Identity Check")
                     .font(.headline)
 
                 // show status message based on current state
-                Text(statusText)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    if atRiskCount > 0 {
+                        PulsingDot(color: GuardianTheme.StatusGradient.warning.primaryColor, size: 6)
+                    }
+                    Text(statusText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
 
             // button to navigate to full identity check view
             Button(action: onOpen) {
-                Label("Open", systemImage: "arrow.right")
+                HStack(spacing: 4) {
+                    Text("Open")
+                    Image(systemName: "arrow.right")
+                        .font(.caption.weight(.semibold))
+                }
             }
             .buttonStyle(.bordered)
+            .tint(GuardianTheme.SectionColor.identityCheck.primaryColor)
         }
     }
 
@@ -98,29 +126,25 @@ struct IdentityCheckSummaryTile: View {
     }
 
     // helper to build a metric card (title + value)
-    private func metric(title: String, value: String) -> some View {
+    private func metric(title: String, value: String, highlight: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.caption)
+                .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
 
             Text(value)
-                .font(.title3.weight(.semibold))
+                .font(.title3.weight(.bold))
+                .foregroundStyle(highlight ? AnyShapeStyle(GuardianTheme.StatusGradient.warning.gradient) : AnyShapeStyle(.primary))
                 .lineLimit(1)
                 // shrink text if it's too long
                 .minimumScaleFactor(0.85)
         }
     }
 
-    private var accentColor: Color? {
-        guard totalCount > 0 else { return nil }
-        return atRiskCount > 0 ? .orange : nil
-    }
-
-    private var borderStyle: AnyShapeStyle {
+    private var accentGradient: LinearGradient {
         if atRiskCount > 0 {
-            return AnyShapeStyle(Color.orange.opacity(0.35))
+            return GuardianTheme.StatusGradient.warning.gradient
         }
-        return AnyShapeStyle(.quaternary)
+        return sectionGradient
     }
 }

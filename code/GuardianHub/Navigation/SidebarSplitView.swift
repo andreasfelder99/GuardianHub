@@ -5,15 +5,16 @@ struct SidebarSplitView: View {
 
     var body: some View {
         NavigationSplitView {
-            // sidebar list
+            // sidebar list with styled items
             List(selection: bindingSelection) {
                 ForEach(AppSection.allCases) { section in
                     NavigationLink(value: section) {
-                        Label(section.title, systemImage: section.systemImage)
+                        SidebarRow(section: section, isSelected: navModel.selectedSection == section)
                     }
                     .tag(section as AppSection?)
                 }
             }
+            .listStyle(.sidebar)
             .navigationTitle("GuardianHub")
         } detail: {
             // detail view on the right
@@ -33,6 +34,30 @@ struct SidebarSplitView: View {
                 if let newValue { navModel.selectedSection = newValue }
             }
         )
+    }
+}
+
+// Custom sidebar row with gradient icon
+private struct SidebarRow: View {
+    let section: AppSection
+    let isSelected: Bool
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Gradient icon background
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(section.gradient.opacity(isSelected ? 1 : 0.8))
+                    .frame(width: 28, height: 28)
+                
+                Image(systemName: section.systemImage)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            
+            Text(section.title)
+                .font(.body.weight(isSelected ? .semibold : .regular))
+        }
     }
 }
 

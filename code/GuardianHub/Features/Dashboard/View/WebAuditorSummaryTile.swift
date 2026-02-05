@@ -5,56 +5,84 @@ struct WebAuditorSummaryTile: View {
     @Query(sort: \WebScan.createdAt, order: .reverse) private var scans: [WebScan]
 
     let onOpen: () -> Void
+    
+    private let sectionGradient = GuardianTheme.SectionColor.webAuditor.gradient
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
             Divider()
+                .overlay(sectionGradient.opacity(0.3))
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
-                metric(title: "Tracked", value: "\(totalCount)")
-                metric(title: "Last Scan", value: lastScannedText)
-                metric(title: "Status", value: statusText)
+                metric(title: "Tracked", value: "\(totalCount)", highlight: false)
+                metric(title: "Last Scan", value: lastScannedText, highlight: false)
+                statusMetric
             }
         }
         .padding(16)
-        .background(
+        .background {
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(.background)
+                
+                // Subtle gradient overlay
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(sectionGradient.opacity(0.08))
 
-                if let accent = accentColor {
-                    Rectangle()
-                        .fill(accent)
-                        .frame(width: 4)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                }
+                // Gradient accent bar
+                Rectangle()
+                    .fill(accentGradient)
+                    .frame(width: 4)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(borderStyle, lineWidth: 1)
-        )
+            .shadow(color: GuardianTheme.SectionColor.webAuditor.primaryColor.opacity(0.12), radius: 12, x: 0, y: 4)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(sectionGradient.opacity(0.25), lineWidth: 1)
+        }
     }
 
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Label("Web Auditor", systemImage: "globe")
+            // Gradient icon background
+            ZStack {
+                Circle()
+                    .fill(sectionGradient)
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: "globe")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Web Auditor")
                     .font(.headline)
 
-                Text(subtitleText)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    if statusText == "Review" {
+                        PulsingDot(color: GuardianTheme.StatusGradient.warning.primaryColor, size: 6)
+                    }
+                    Text(subtitleText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
 
             Button(action: onOpen) {
-                Label("Open", systemImage: "arrow.right")
+                HStack(spacing: 4) {
+                    Text("Open")
+                    Image(systemName: "arrow.right")
+                        .font(.caption.weight(.semibold))
+                }
             }
             .buttonStyle(.bordered)
+            .tint(GuardianTheme.SectionColor.webAuditor.primaryColor)
         }
     }
 
@@ -94,30 +122,45 @@ struct WebAuditorSummaryTile: View {
         return "Sites added, not scanned yet"
     }
 
-    private var accentColor: Color? {
-        guard totalCount > 0 else { return nil }
-        // If the most recent scan indicates issues, show an accent.
-        if statusText == "Review" { return .orange }
-        return nil
-    }
-
-    private var borderStyle: AnyShapeStyle {
+    private var accentGradient: LinearGradient {
         if statusText == "Review" {
-            return AnyShapeStyle(Color.orange.opacity(0.35))
+            return GuardianTheme.StatusGradient.warning.gradient
         }
-        return AnyShapeStyle(.quaternary)
+        return sectionGradient
     }
 
-    private func metric(title: String, value: String) -> some View {
+    private func metric(title: String, value: String, highlight: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.caption)
+                .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
 
             Text(value)
-                .font(.title3.weight(.semibold))
+                .font(.title3.weight(.bold))
+                .foregroundStyle(highlight ? AnyShapeStyle(GuardianTheme.StatusGradient.warning.gradient) : AnyShapeStyle(.primary))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
+        }
+    }
+    
+    private var statusMetric: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Status")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+            
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(statusText == "OK" ? GuardianTheme.StatusGradient.success.gradient : (statusText == "Review" ? GuardianTheme.StatusGradient.warning.gradient : GuardianTheme.StatusGradient.neutral.gradient))
+                    .frame(width: 8, height: 8)
+                
+                Text(statusText)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(
+                        statusText == "OK" ? AnyShapeStyle(GuardianTheme.StatusGradient.success.gradient) :
+                        (statusText == "Review" ? AnyShapeStyle(GuardianTheme.StatusGradient.warning.gradient) : AnyShapeStyle(.primary))
+                    )
+            }
         }
     }
 }
