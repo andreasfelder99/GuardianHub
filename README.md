@@ -629,16 +629,6 @@ GuardianHub/
 │   └── ShareSheet.swift          # iOS share integration
 └── Assets.xcassets/              # App icons, colors
 ```
-
----
-
-## Requirements
-
-- **iOS 18.0+** / **macOS 15.0+**
-- **Xcode 16.0+**
-- **Swift 5.9+**
-- Apple Intelligence (optional, for AI-powered explanations)
-
 ---
 
 ## Building & Running
