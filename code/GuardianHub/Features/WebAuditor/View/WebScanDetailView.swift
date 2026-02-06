@@ -45,24 +45,32 @@ struct WebScanDetailView: View {
                 )
             }
 
-            Section("TLS") {
-                LabeledContent("Status", value: scan.tlsSummary)
-                LabeledContent("Trusted", value: scan.isTLSValid ? "Yes" : "No")
-                LabeledContent("Common Name", value: scan.certificateCommonName ?? "—")
-                LabeledContent("Issuer", value: scan.certificateIssuer ?? "—")
+            Section {
+                LabeledContent("Connection", value: scan.tlsSummary)
+                LabeledContent("Certificate Trusted", value: scan.isTLSValid ? "Yes" : "No")
+                LabeledContent("Domain", value: scan.certificateCommonName ?? "—")
+                LabeledContent("Issued By", value: scan.certificateIssuer ?? "—")
                 LabeledContent(
-                    "Valid Until",
+                    "Expires",
                     value: scan.certificateValidUntil?.formatted(date: .abbreviated, time: .omitted) ?? "—"
                 )
+            } header: {
+                Text("HTTPS Certificate")
+            } footer: {
+                Text("A valid HTTPS certificate ensures your connection to this site is encrypted and verified.")
             }
 
-            Section("Security Headers") {
-                LabeledContent("Summary", value: scan.headerSummary)
-                LabeledContent("HSTS", value: scan.hasHSTS ? "Present" : "Missing")
-                LabeledContent("CSP", value: scan.hasCSP ? "Present" : "Missing")
+            Section {
+                LabeledContent("Overall", value: scan.headerSummary)
+                LabeledContent("HSTS", value: scan.hasHSTS ? "Enabled" : "Not set")
+                LabeledContent("Content Security", value: scan.hasCSP ? "Enabled" : "Not set")
+            } header: {
+                Text("Security Headers")
+            } footer: {
+                Text("HSTS forces secure connections. Content Security Policy (CSP) helps prevent cross-site scripting attacks.")
             }
         }
-        .navigationTitle("Web Scan")
+        .navigationTitle("Security Scan")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -90,8 +98,8 @@ struct WebScanDetailView: View {
     }
 
     private var statusTitle: String {
-        if scan.lastScannedAt == nil { return "Not scanned yet" }
-        return scan.isTLSValid ? "No critical issues found" : "Issues detected"
+        if scan.lastScannedAt == nil { return "Waiting for first scan" }
+        return scan.isTLSValid ? "Connection is secure" : "Security issues detected"
     }
 
     private var statusIcon: String {

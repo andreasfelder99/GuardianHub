@@ -13,10 +13,10 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
     var title: String {
         switch self {
         case .dashboard: return "Dashboard"
-        case .identityCheck: return "Identity Check"
-        case .webAuditor: return "Web Auditor"
-        case .privacyGuard: return "Privacy Guard"
-        case .passwordLab: return "Password Lab"
+        case .identityCheck: return "Breach Monitor"
+        case .webAuditor: return "Web Security"
+        case .privacyGuard: return "Photo Privacy"
+        case .passwordLab: return "Passwords"
         }
     }
 

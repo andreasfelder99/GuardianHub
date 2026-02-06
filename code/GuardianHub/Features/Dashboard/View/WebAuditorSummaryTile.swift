@@ -16,7 +16,7 @@ struct WebAuditorSummaryTile: View {
                 .overlay(sectionGradient.opacity(0.3))
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
-                metric(title: "Tracked", value: "\(totalCount)", highlight: false)
+                metric(title: "Sites", value: "\(totalCount)", highlight: false)
                 metric(title: "Last Scan", value: lastScannedText, highlight: false)
                 statusMetric
             }
@@ -46,43 +46,49 @@ struct WebAuditorSummaryTile: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 12) {
-            // Gradient icon background
-            ZStack {
-                Circle()
-                    .fill(sectionGradient)
-                    .frame(width: 36, height: 36)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
+                // Gradient icon background
+                ZStack {
+                    Circle()
+                        .fill(sectionGradient)
+                        .frame(width: 36, height: 36)
+                    
+                    Image(systemName: "globe")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
                 
-                Image(systemName: "globe")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Website Security")
+                        .font(.headline)
+
+                    HStack(spacing: 6) {
+                        if statusText == "Review" {
+                            PulsingDot(color: GuardianTheme.StatusGradient.warning.primaryColor, size: 6)
+                        }
+                        Text(subtitleText)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                Button(action: onOpen) {
+                    HStack(spacing: 4) {
+                        Text("Open")
+                        Image(systemName: "arrow.right")
+                            .font(.caption.weight(.semibold))
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(GuardianTheme.SectionColor.webAuditor.primaryColor)
             }
             
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Web Auditor")
-                    .font(.headline)
-
-                HStack(spacing: 6) {
-                    if statusText == "Review" {
-                        PulsingDot(color: GuardianTheme.StatusGradient.warning.primaryColor, size: 6)
-                    }
-                    Text(subtitleText)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            Button(action: onOpen) {
-                HStack(spacing: 4) {
-                    Text("Open")
-                    Image(systemName: "arrow.right")
-                        .font(.caption.weight(.semibold))
-                }
-            }
-            .buttonStyle(.bordered)
-            .tint(GuardianTheme.SectionColor.webAuditor.primaryColor)
+            Text("Verify HTTPS certificates and security headers on websites you use.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -114,12 +120,12 @@ struct WebAuditorSummaryTile: View {
     }
 
     private var subtitleText: String {
-        if totalCount == 0 { return "No sites audited yet" }
+        if totalCount == 0 { return "No websites scanned yet" }
         if let latest = scans.sorted(by: { ($0.lastScannedAt ?? .distantPast) > ($1.lastScannedAt ?? .distantPast) }).first,
            latest.lastScannedAt != nil {
-            return latest.isTLSValid ? "Last scan looks good" : "Last scan needs review"
+            return latest.isTLSValid ? "Connection secure" : "Security issues found"
         }
-        return "Sites added, not scanned yet"
+        return "Websites added, scan pending"
     }
 
     private var accentGradient: LinearGradient {

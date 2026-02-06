@@ -13,7 +13,7 @@ struct PhoneTabView: View {
     private enum PhoneTab: Hashable {
         case dashboard
         case identityCheck
-        case webAuditor
+        case privacyGuard
         case more
     }
 
@@ -22,11 +22,11 @@ struct PhoneTabView: View {
     private let primarySections: [AppSection] = [
         .dashboard,
         .identityCheck,
-        .webAuditor
+        .privacyGuard
     ]
 
     private let moreSections: [AppSection] = [
-        .privacyGuard,
+        .webAuditor,
         .passwordLab
     ]
 
@@ -52,13 +52,13 @@ struct PhoneTabView: View {
             .tag(PhoneTab.identityCheck)
 
             NavigationStack {
-                WebAuditorView()
-                    .onAppear { navModel.selectedSection = .webAuditor }
+                PrivacyGuardView()
+                    .onAppear { navModel.selectedSection = .privacyGuard }
             }
             .tabItem {
-                Label(AppSection.webAuditor.title, systemImage: AppSection.webAuditor.systemImage)
+                Label(AppSection.privacyGuard.title, systemImage: AppSection.privacyGuard.systemImage)
             }
-            .tag(PhoneTab.webAuditor)
+            .tag(PhoneTab.privacyGuard)
 
             NavigationStack {
                 moreRoot
@@ -99,7 +99,7 @@ struct PhoneTabView: View {
                         .font(.title3)
                         .foregroundStyle(GuardianTheme.StatusGradient.success.gradient)
                     
-                    Text("Password Lab runs fully offline. Nothing is stored or sent.")
+                    Text("All analysis happens on your device. Nothing is stored or sent anywhere.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -136,8 +136,8 @@ struct PhoneTabView: View {
         switch section {
         case .dashboard: return .dashboard
         case .identityCheck: return .identityCheck
-        case .webAuditor: return .webAuditor
-        case .privacyGuard, .passwordLab:
+        case .privacyGuard: return .privacyGuard
+        case .webAuditor, .passwordLab:
             return .more
         }
     }
@@ -173,8 +173,8 @@ private struct MoreSectionRow: View {
     
     private func descriptionFor(_ section: AppSection) -> String {
         switch section {
-        case .privacyGuard: return "Audit photo metadata"
-        case .passwordLab: return "Analyze password strength"
+        case .webAuditor: return "Check HTTPS and security headers"
+        case .passwordLab: return "Test password strength and crack time"
         default: return ""
         }
     }

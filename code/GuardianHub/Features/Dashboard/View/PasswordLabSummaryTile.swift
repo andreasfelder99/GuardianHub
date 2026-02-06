@@ -37,37 +37,43 @@ struct PasswordLabSummaryTile: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(sectionGradient)
-                    .frame(width: 36, height: 36)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(sectionGradient)
+                        .frame(width: 36, height: 36)
+                    
+                    Image(systemName: "key.viewfinder")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
                 
-                Image(systemName: "key.viewfinder")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Password Strength")
+                        .font(.headline)
+
+                    Text("Test how secure your passwords are")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Button(action: onOpen) {
+                    HStack(spacing: 4) {
+                        Text("Open")
+                        Image(systemName: "arrow.right")
+                            .font(.caption.weight(.semibold))
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(GuardianTheme.SectionColor.passwordLab.primaryColor)
             }
             
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Password Lab")
-                    .font(.headline)
-
-                Text("Test password strength instantly")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Button(action: onOpen) {
-                HStack(spacing: 4) {
-                    Text("Open")
-                    Image(systemName: "arrow.right")
-                        .font(.caption.weight(.semibold))
-                }
-            }
-            .buttonStyle(.bordered)
-            .tint(GuardianTheme.SectionColor.passwordLab.primaryColor)
+            Text("Analyze password entropy and estimated crack time—all offline.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 

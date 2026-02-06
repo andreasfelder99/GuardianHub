@@ -35,7 +35,7 @@ struct WebAuditorView: View {
                 }
             }
         }
-        .navigationTitle("Web Auditor")
+        .navigationTitle("Website Security Scanner")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -70,10 +70,10 @@ struct WebAuditorView: View {
             }
             
             VStack(spacing: 8) {
-                Text("No Web Scans")
+                Text("Scan Website Security")
                     .font(.title2.weight(.bold))
                 
-                Text("Add a URL to start auditing TLS and key security headers.")
+                Text("Check if websites use secure connections (HTTPS/TLS) and follow security best practices like HSTS and Content Security Policy.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -83,7 +83,7 @@ struct WebAuditorView: View {
             Button {
                 isPresentingAddSheet = true
             } label: {
-                Label("Add Website", systemImage: "plus.circle.fill")
+                Label("Add Website to Scan", systemImage: "plus.circle.fill")
                     .font(.headline)
             }
             .buttonStyle(.borderedProminent)

@@ -66,9 +66,9 @@ struct WebScanRow: View {
 
     private var subtitle: String {
         if scan.lastScannedAt == nil {
-            return "Not scanned yet"
+            return "Tap to run first scan"
         }
-        return scan.tlsSummary
+        return scan.isTLSValid ? "Secure connection" : scan.tlsSummary
     }
 
     private var trailing: String {

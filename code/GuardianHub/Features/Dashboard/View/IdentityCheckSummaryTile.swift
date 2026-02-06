@@ -19,8 +19,8 @@ struct IdentityCheckSummaryTile: View {
 
             // grid layout for the 3 metrics
             LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
-                metric(title: "Tracked", value: "\(totalCount)", highlight: false)
-                metric(title: "At Risk", value: "\(atRiskCount)", highlight: atRiskCount > 0)
+                metric(title: "Monitored", value: "\(totalCount)", highlight: false)
+                metric(title: "Exposed", value: "\(atRiskCount)", highlight: atRiskCount > 0)
                 metric(title: "Last Check", value: lastCheckedText, highlight: false)
             }
         }
@@ -49,45 +49,51 @@ struct IdentityCheckSummaryTile: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 12) {
-            // Gradient icon background
-            ZStack {
-                Circle()
-                    .fill(sectionGradient)
-                    .frame(width: 36, height: 36)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
+                // Gradient icon background
+                ZStack {
+                    Circle()
+                        .fill(sectionGradient)
+                        .frame(width: 36, height: 36)
+                    
+                    Image(systemName: "person.text.rectangle")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
                 
-                Image(systemName: "person.text.rectangle")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Data Breach Monitor")
+                        .font(.headline)
+
+                    // show status message based on current state
+                    HStack(spacing: 6) {
+                        if atRiskCount > 0 {
+                            PulsingDot(color: GuardianTheme.StatusGradient.warning.primaryColor, size: 6)
+                        }
+                        Text(statusText)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                // button to navigate to full identity check view
+                Button(action: onOpen) {
+                    HStack(spacing: 4) {
+                        Text("Open")
+                        Image(systemName: "arrow.right")
+                            .font(.caption.weight(.semibold))
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(GuardianTheme.SectionColor.identityCheck.primaryColor)
             }
             
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Identity Check")
-                    .font(.headline)
-
-                // show status message based on current state
-                HStack(spacing: 6) {
-                    if atRiskCount > 0 {
-                        PulsingDot(color: GuardianTheme.StatusGradient.warning.primaryColor, size: 6)
-                    }
-                    Text(statusText)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            // button to navigate to full identity check view
-            Button(action: onOpen) {
-                HStack(spacing: 4) {
-                    Text("Open")
-                    Image(systemName: "arrow.right")
-                        .font(.caption.weight(.semibold))
-                }
-            }
-            .buttonStyle(.bordered)
-            .tint(GuardianTheme.SectionColor.identityCheck.primaryColor)
+            Text("Check if your email addresses appear in known data breaches.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -111,9 +117,9 @@ struct IdentityCheckSummaryTile: View {
 
     // status message that changes based on state
     private var statusText: String {
-        if totalCount == 0 { return "No emails tracked yet" }
-        if atRiskCount > 0 { return "\(atRiskCount) item(s) need attention" }
-        return "No risks recorded"
+        if totalCount == 0 { return "No emails monitored yet" }
+        if atRiskCount > 0 { return "\(atRiskCount) email(s) found in breaches" }
+        return "All clear—no breaches found"
     }
 
     // get the most recent check date across all checks

@@ -29,12 +29,18 @@ struct BreachCheckDetailView: View {
             Section {
                 HStack {
                     Label(
-                        check.breachCount > 0 ? "Attention required" : "No issues stored",
-                        systemImage: "shield.lefthalf.filled"
+                        check.breachCount > 0 ? "Found in \(check.breachCount) breach\(check.breachCount == 1 ? "" : "es")" : "No breaches found",
+                        systemImage: check.breachCount > 0 ? "exclamationmark.triangle.fill" : "checkmark.shield.fill"
                     )
+                    .foregroundStyle(check.breachCount > 0 ? .orange : .primary)
                     Spacer()
-                    Text(check.breachCount > 0 ? "Risk" : "OK")
-                        .foregroundStyle(check.breachCount > 0 ? .orange : .secondary)
+                    Text(check.breachCount > 0 ? "At Risk" : "Safe")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(check.breachCount > 0 ? .orange : .green)
+                }
+            } footer: {
+                if check.breachCount > 0 {
+                    Text("This email was found in data breaches. Consider changing passwords for affected accounts.")
                 }
             }
 
@@ -67,11 +73,11 @@ struct BreachCheckDetailView: View {
 
             HIBPAPIKeySection()
 
-            Section("Summary") {
+            Section("Email Details") {
                 LabeledContent("Email", value: check.emailAddress)
-                LabeledContent("Breaches", value: "\(check.breachCount)")
+                LabeledContent("Breaches Found", value: "\(check.breachCount)")
                 LabeledContent(
-                    "Created",
+                    "Added",
                     value: check.createdAt.formatted(date: .abbreviated, time: .shortened)
                 )
                 LabeledContent(
@@ -80,12 +86,12 @@ struct BreachCheckDetailView: View {
                 )
             }
 
-            Section("History") {
+            Section {
                 if check.events.isEmpty {
                     ContentUnavailableView(
-                        "No breach history stored",
-                        systemImage: "tray",
-                        description: Text("Once you run a check, breach events will appear here.")
+                        "No Breaches Recorded",
+                        systemImage: "shield.checkered",
+                        description: Text("Run a check to scan for data breaches involving this email.")
                     )
                     .frame(maxWidth: .infinity, minHeight: 240)
                 } else {
@@ -96,7 +102,7 @@ struct BreachCheckDetailView: View {
 
                             if let occurredAt = event.occurredAt {
                                 Text(
-                                    "Occurred: \(occurredAt.formatted(date: .abbreviated, time: .omitted))"
+                                    "Breach date: \(occurredAt.formatted(date: .abbreviated, time: .omitted))"
                                 )
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
@@ -104,9 +110,15 @@ struct BreachCheckDetailView: View {
                         }
                     }
                 }
+            } header: {
+                Text("Breach History")
+            } footer: {
+                if !check.events.isEmpty {
+                    Text("These are services where your email was found in leaked data. Change your password on any accounts you still use.")
+                }
             }
         }
-        .navigationTitle("Breach Check")
+        .navigationTitle("Breach Details")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {

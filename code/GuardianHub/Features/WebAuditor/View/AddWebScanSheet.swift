@@ -11,7 +11,7 @@ struct AddWebScanSheet: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("New Web Scan")
+                .navigationTitle("Add Website")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
@@ -33,14 +33,18 @@ struct AddWebScanSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Website URL")
                 .font(.headline)
+            
+            Text("We'll check the site's HTTPS certificate and security headers.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
 
             TextField("example.com", text: $urlInput)
                 .autocorrectionDisabled()
                 .textFieldStyle(.roundedBorder)
 
-            Text("Tip: You can paste without https:// — it will be added automatically.")
+            Text("You can enter just the domain—https:// will be added automatically.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.tertiary)
 
             if let validationMessage {
                 Text(validationMessage)
@@ -53,7 +57,7 @@ struct AddWebScanSheet: View {
         .padding(20)
         #else
         Form {
-            Section("Website URL") {
+            Section {
                 TextField("example.com", text: $urlInput)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -64,10 +68,10 @@ struct AddWebScanSheet: View {
                         .font(.footnote)
                         .foregroundStyle(.red)
                 }
-
-                Text("Tip: You can paste without https:// — it will be added automatically.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Website URL")
+            } footer: {
+                Text("We'll check the site's HTTPS certificate and security headers. You can enter just the domain—https:// will be added automatically.")
             }
         }
         #endif

@@ -22,7 +22,7 @@ struct PasswordLabView: View {
             }
             .padding()
         }
-        .navigationTitle("Password Lab")
+        .navigationTitle("Password Strength Tester")
         .scrollIndicators(.hidden)
         #if os(iOS)
         .scrollDismissesKeyboard(.interactively)
@@ -48,10 +48,10 @@ struct PasswordLabView: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Password Strength")
+                    Text("Test Your Password")
                         .font(.title2.weight(.bold))
                     
-                    Text("Transparent rules, real-time feedback. Nothing is stored or sent.")
+                    Text("See how strong your password really is. Analysis happens locally—nothing leaves your device.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

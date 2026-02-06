@@ -37,7 +37,7 @@ struct IdentityCheckView: View {
                 }
             }
         }
-        .navigationTitle("Identity Check")
+        .navigationTitle("Data Breach Monitor")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -73,10 +73,10 @@ struct IdentityCheckView: View {
             }
             
             VStack(spacing: 8) {
-                Text("No Breach Checks")
+                Text("Monitor Your Digital Identity")
                     .font(.title2.weight(.bold))
                 
-                Text("Add an email address to start tracking breach history.")
+                Text("Check if your email addresses have appeared in known data breaches. Stay informed when your credentials may have been exposed.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -86,7 +86,7 @@ struct IdentityCheckView: View {
             Button {
                 isPresentingAddSheet = true
             } label: {
-                Label("Add Email", systemImage: "plus.circle.fill")
+                Label("Add Email to Monitor", systemImage: "plus.circle.fill")
                     .font(.headline)
             }
             .buttonStyle(.borderedProminent)

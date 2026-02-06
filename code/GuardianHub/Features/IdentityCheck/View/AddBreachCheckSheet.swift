@@ -12,7 +12,7 @@ struct AddBreachCheckSheet: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("New Breach Check")
+                .navigationTitle("Add Email to Monitor")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
@@ -37,6 +37,10 @@ struct AddBreachCheckSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Email Address")
                 .font(.headline)
+            
+            Text("We'll check if this email has appeared in any known data breaches.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
 
             TextField("name@example.com", text: $emailAddress)
                 .autocorrectionDisabled()
@@ -53,7 +57,7 @@ struct AddBreachCheckSheet: View {
         #else
         // use form on iOS for better keyboard handling
         Form {
-            Section("Email Address") {
+            Section {
                 TextField("name@example.com", text: $emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -64,6 +68,10 @@ struct AddBreachCheckSheet: View {
                         .font(.footnote)
                         .foregroundStyle(.red)
                 }
+            } header: {
+                Text("Email Address")
+            } footer: {
+                Text("We'll check if this email has appeared in any known data breaches.")
             }
         }
         #endif

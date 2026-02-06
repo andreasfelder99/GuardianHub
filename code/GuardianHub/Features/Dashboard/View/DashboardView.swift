@@ -50,10 +50,10 @@ struct DashboardView: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Security Overview")
+                    Text("Your Security Hub")
                         .font(.title2.weight(.bold))
                     
-                    Text("Review recent checks and jump into tools.")
+                    Text("Monitor breaches, scan websites, check passwords, and protect photo privacy—all in one place.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
